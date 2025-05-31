@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { Rocket, Users, CheckCircle, LogIn, Layout, Zap, Star } from 'lucide-react';
+import { Navbar } from '@/components/layout/Navbar';
 
 // Feature card icon wrappers using Lucide icons
 const RocketIcon = ({ className = "w-12 h-12" }: { className?: string }) => (
@@ -49,26 +50,7 @@ export default function HomePage() {
       <div className="absolute inset-0 bg-space-dots pointer-events-none"></div>
       <div className="absolute inset-0 bg-gradient-to-b from-[#0c1e44]/30 to-[#0E0525] pointer-events-none"></div>
       {/* Navigation */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[#0a051a]/90 backdrop-blur-sm border-b border-blue-800/20">
-        <div className="container mx-auto flex items-center justify-between p-4">
-          <Link href="/" className="flex items-center gap-2 text-xl font-bold text-white">
-            <Rocket className="h-6 w-6 text-blue-400" />
-            <span>Retro Space</span>
-          </Link>
-          <div className="flex items-center space-x-3">
-            <a
-              href="#join-retro"
-              className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-800 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 bg-transparent text-blue-100 hover:text-blue-300 border border-blue-800/30 hover:border-blue-500/50 h-10 px-4 py-2">
-              Join a Retro
-            </a>
-            <Link
-              href="/auth"
-              className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-800 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 bg-gradient-to-r from-blue-800 to-indigo-900 hover:from-blue-900 hover:to-indigo-950 text-white h-10 px-4 py-2 shadow-lg shadow-blue-800/20">
-              Sign In
-            </Link>
-          </div>
-        </div>
-      </header>
+      <Navbar transparent={true} />
 
       {/* Hero Section */}
       <section className="pt-32 pb-16 relative z-10">
