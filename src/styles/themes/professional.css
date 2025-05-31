@@ -1,0 +1,25 @@
+html[data-theme="professional"] {
+  --background: 0 0% 98%; /* Very Light Gray/Off-White */
+  --foreground: 215 25% 27%; /* Dark Slate Blue */
+  --card: 0 0% 100%; /* White */
+  --card-foreground: 215 25% 27%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 215 25% 27%;
+  --primary: 210 40% 40%; /* Corporate Blue */
+  --primary-foreground: 0 0% 100%; /* White */
+  --secondary: 210 10% 75%; /* Light Cool Gray */
+  --secondary-foreground: 210 40% 40%;
+  --muted: 210 10% 90%; /* Very Light Cool Gray */
+  --muted-foreground: 210 10% 50%; /* Medium Cool Gray */
+  --accent: 150 40% 50%; /* Subtle Green/Teal for Accents */
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 70% 50%; /* Muted Red */
+  --destructive-foreground: 0 0% 100%;
+  --border: 210 10% 85%; /* Light Gray Border */
+  --input: 0 0% 100%; /* White Input with Border */
+  --ring: 210 40% 40%; /* Corporate Blue */
+  --radius: 0.375rem; /* Sharper corners */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+  --shadow-md: 0 3px 5px -1px rgb(0 0 0 / 0.05), 0 2px 3px -2px rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 7px 10px -3px rgb(0 0 0 / 0.05), 0 3px 5px -4px rgb(0 0 0 / 0.05);
+}

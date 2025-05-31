@@ -1,0 +1,25 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users collection
+    // Users can read and write their own data.
+    // User documents are keyed by their Firebase Auth UID.
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId;
+      // Deny delete by default unless specifically needed
+      allow delete: if false; 
+    }
+
+    // VerificationCodes collection
+    // This collection should only be accessed by the backend (Admin SDK).
+    // Deny all client-side access.
+    match /verificationCodes/{codeId} {
+      allow read: if false;
+      allow write: if false; // create, update, delete
+    }
+  }
+}

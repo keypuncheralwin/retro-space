@@ -1,0 +1,25 @@
+html[data-theme="retro"] {
+  --background: 45 90% 90%; /* Cream/Light Yellow */
+  --foreground: 25 80% 20%; /* Dark Brown */
+  --card: 30 80% 85%; /* Light Orange/Peach */
+  --card-foreground: 25 80% 20%;
+  --popover: 30 80% 85%;
+  --popover-foreground: 25 80% 20%;
+  --primary: 190 70% 50%; /* Teal */
+  --primary-foreground: 0 0% 100%; /* White */
+  --secondary: 340 70% 60%; /* Pink */
+  --secondary-foreground: 0 0% 100%;
+  --muted: 40 50% 75%; /* Light Tan */
+  --muted-foreground: 25 60% 30%; /* Medium Brown */
+  --accent: 120 60% 55%; /* Green */
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 80% 55%; /* Bright Red */
+  --destructive-foreground: 0 0% 100%;
+  --border: 25 80% 20%; /* Dark Brown Border */
+  --input: 45 70% 80%; /* Lighter Cream for Input */
+  --ring: 190 70% 50%; /* Teal */
+  --radius: 0.75rem;
+  --shadow-sm: 3px 3px 0px hsl(var(--primary));
+  --shadow-md: 5px 5px 0px hsl(var(--primary));
+  --shadow-lg: 7px 7px 0px hsl(var(--primary));
+}

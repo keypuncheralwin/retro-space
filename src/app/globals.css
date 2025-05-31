@@ -1,26 +1,41 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* Import theme files */
+@import "../styles/themes/light.css";
+@import "../styles/themes/dark.css";
+@import "../styles/themes/retro.css";
+@import "../styles/themes/professional.css";
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: Arial, Helvetica, sans-serif; /* Retaining original font stack, Next/Font may override */
+    min-height: 100vh;
+    font-feature-settings: "rlig" 1, "calt" 1; /* Common font settings */
+
+    /* Smooth transitions for theme-affected properties */
+    transition-property: background-color, color, border-color, box-shadow;
+    transition-duration: 0.3s; /* Adjust duration as needed */
+    transition-timing-function: ease-in-out;
+  }
+
+  /* Ensure all elements and pseudo-elements have smooth color transitions by default */
+  *,
+  *::before,
+  *::after {
+    transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+    transition-duration: 0.3s; /* Consistent duration */
+    transition-timing-function: ease-in-out;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+  .bg-space-dots {
+    background-color: #0a0a1e; /* Darker space blue/purple */
+    background-image: radial-gradient(circle, rgba(200, 200, 255, 0.07) 0.8px, transparent 1px); /* Very subtle, slightly bluish dots */
+    background-size: 30px 30px; /* Adjust spacing */
+  }
 }
+
