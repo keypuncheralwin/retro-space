@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       email,
       code,
       createdAt: now,
-      expiresAt: new Date(now.getTime() + 15 * 60 * 1000), // 15 minutes like reference
+      expiresAt: new Date(now.getTime() + 15 * 60 * 1000), // 15 minutes
       used: false,
     };
 
