@@ -9,8 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "firebase": "^11.8.1",
     "firebase-admin": "^13.4.0",
+    "frimousse": "^0.2.0",
+    "lucide-react": "^0.511.0",
     "next": "15.3.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
