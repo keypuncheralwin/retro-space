@@ -8,9 +8,9 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  DragEndEvent,
   DragStartEvent,
   DragOverEvent,
+  DragEndEvent,
   DragOverlay,
   DropAnimation,
   defaultDropAnimationSideEffects,
@@ -21,14 +21,21 @@ import {
   sortableKeyboardCoordinates,
   horizontalListSortingStrategy,
 } from '@dnd-kit/sortable';
+import { v4 as uuid } from 'uuid';
+
+import Board from '@/components/board/Board';
 import Column from '@/components/board/Column';
 import Card from '@/components/board/Card';
+import StackCard, { StackItem } from '@/components/board/StackCard';
 import Spacer from '@/components/board/Spacer';
-import Board from '@/components/board/Board';
 import BoardSkeleton from '@/components/skeletons/BoardSkeleton';
 import ClientOnly from '@/components/wrappers/ClientOnly';
 
-interface CardItem {
+/* ------------------------------------------------------------------ */
+/* TYPES */
+/* ------------------------------------------------------------------ */
+
+export interface CardItem {
   id: string;
   type: 'card';
   authorName: string;
@@ -36,19 +43,25 @@ interface CardItem {
   initialScore: number;
 }
 
-interface SpacerItem {
+export interface SpacerItem {
   id: string;
   type: 'spacer';
   name?: string;
   color?: string;
 }
 
+export type BoardItem = CardItem | SpacerItem | StackItem;
+
 interface ColumnData {
   id: string;
   title: string;
   description: string;
-  items: (CardItem | SpacerItem)[];
+  items: BoardItem[];
 }
+
+/* ------------------------------------------------------------------ */
+/* SAMPLE DATA */
+/* ------------------------------------------------------------------ */
 
 const initialBoardData: ColumnData[] = [
   {
@@ -85,127 +98,57 @@ const initialBoardData: ColumnData[] = [
   },
 ];
 
+/* ------------------------------------------------------------------ */
+/* DROP ANIMATION */
+/* ------------------------------------------------------------------ */
+
 const dropAnimation: DropAnimation = {
   sideEffects: defaultDropAnimationSideEffects({
-    styles: {
-      active: {
-        opacity: '0.5',
-      },
-    },
+    styles: { active: { opacity: '0.5' } },
   }),
 };
 
-
+/* ------------------------------------------------------------------ */
+/* PAGE */
+/* ------------------------------------------------------------------ */
 
 const BoardPage: React.FC = () => {
   const [columns, setColumns] = React.useState<ColumnData[]>(initialBoardData);
   const [activeId, setActiveId] = React.useState<string | null>(null);
+  const [overId, setOverId] = React.useState<string | null>(null);
 
-  // Configure sensors for drag and drop
+  /* sensors */
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8, // Require 8px of movement before drag starts
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  // Find which column an item belongs to
-  const findColumn = (id: string): ColumnData | undefined => {
-    return columns.find(col => 
-      col.id === id || (col.items && col.items.some(item => item && item.id === id))
-    );
-  };
+  /* helpers */
+  const findColumn = (id: string) =>
+    columns.find(col => col.id === id || col.items.some(item => item.id === id));
 
-  // Get the active item data
-  const getActiveItem = () => {
-    if (!activeId) return null;
-    
-    // Check if it's a column
-    const column = columns.find(col => col.id === activeId);
-    if (column) return column;
-    
-    // Otherwise, find the item in columns
+  const getItem = (id: string): BoardItem | ColumnData | null => {
     for (const col of columns) {
-      const item = col.items.find(item => item && item.id === activeId);
-      if (item) return item;
+      if (col.id === id) return col;
+      const itm = col.items.find(i => i.id === id);
+      if (itm) return itm;
     }
     return null;
   };
 
+  /* dnd handlers */
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
   };
 
   const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event;
-    if (!over) return;
-
-    const activeId = active.id as string;
-    const overId = over.id as string;
-
-    // Find which columns the active and over items belong to
-    const activeColumn = findColumn(activeId);
-    const overColumn = findColumn(overId);
-
-    if (!activeColumn || !overColumn) return;
-
-    // If the item is being moved to a different column
-    if (activeColumn.id !== overColumn.id) {
-      setColumns(prevColumns => {
-        const activeColumnIndex = prevColumns.findIndex(col => col.id === activeColumn.id);
-        const overColumnIndex = prevColumns.findIndex(col => col.id === overColumn.id);
-        
-        const activeItems = [...prevColumns[activeColumnIndex].items];
-        const overItems = [...prevColumns[overColumnIndex].items];
-        
-        // Find the item being dragged
-        const activeItemIndex = activeItems.findIndex(item => item && item.id === activeId);
-        // Guard against not finding the item
-        if (activeItemIndex === -1) return prevColumns;
-        
-        const activeItem = activeItems[activeItemIndex];
-        
-        // Remove from source column
-        activeItems.splice(activeItemIndex, 1);
-        
-        // Add to destination column
-        if (overId === overColumn.id) {
-          // Dropped on the column itself, add to end
-          overItems.push(activeItem);
-        } else {
-          // Dropped on another item, insert at that position
-          const overItemIndex = overItems.findIndex(item => item && item.id === overId);
-          if (overItemIndex !== -1) {
-            overItems.splice(overItemIndex, 0, activeItem);
-          } else {
-            // If we can't find the specific item, append to the end of the column
-            overItems.push(activeItem);
-          }
-        }
-        
-        // Update columns
-        const newColumns = [...prevColumns];
-        newColumns[activeColumnIndex] = {
-          ...prevColumns[activeColumnIndex],
-          items: activeItems
-        };
-        newColumns[overColumnIndex] = {
-          ...prevColumns[overColumnIndex],
-          items: overItems
-        };
-        
-        return newColumns;
-      });
-    }
+    setOverId(event.over ? (event.over.id as string) : null);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    
+    setOverId(null);
+
     if (!over) {
       setActiveId(null);
       return;
@@ -213,63 +156,144 @@ const BoardPage: React.FC = () => {
 
     const activeId = active.id as string;
     const overId = over.id as string;
-
     if (activeId === overId) {
       setActiveId(null);
       return;
     }
 
-    // Check if we're moving columns
-    const activeColumn = columns.find(col => col.id === activeId);
-    const overColumn = columns.find(col => col.id === overId);
-    
-    if (activeColumn && overColumn) {
-      // Reordering columns
-      setColumns(items => {
-        const oldIndex = items.findIndex(item => item.id === activeId);
-        const newIndex = items.findIndex(item => item.id === overId);
-        return arrayMove(items, oldIndex, newIndex);
+    const activeCol = findColumn(activeId);
+    const overCol = findColumn(overId);
+    if (!activeCol || !overCol) {
+      setActiveId(null);
+      return;
+    }
+
+    /* ---------- stacking logic ---------- */
+    const activeItem = getItem(activeId) as BoardItem;
+    const overItem = getItem(overId) as BoardItem;
+    const canStack =
+      activeItem.type === 'card' &&
+      (overItem.type === 'card' || overItem.type === 'stack');
+
+    if (canStack) {
+      setColumns(prev => {
+        const next = structuredClone(prev) as ColumnData[];
+
+        /* remove active card from its column */
+        const src = next.find(c => c.id === activeCol.id)!;
+        src.items = src.items.filter(i => i.id !== activeId);
+
+        /* destination column */
+        const dst = next.find(c => c.id === overCol.id)!;
+
+        if (overItem.type === 'card') {
+          /* make new stack */
+          const newStack: StackItem = {
+            id: uuid(),
+            type: 'stack',
+            cards: [overItem, activeItem],
+          };
+          dst.items = dst.items.map(i => (i.id === overId ? newStack : i));
+        } else {
+          /* push into existing stack */
+          const stack = dst.items.find(i => i.id === overId) as StackItem;
+          stack.cards.push(activeItem);
+        }
+        return next;
+      });
+      setActiveId(null);
+      return;
+    }
+
+    /* ---------- regular re-ordering logic ---------- */
+    if (activeCol.id !== overCol.id) {
+      /* moving across columns */
+      setColumns(prev => {
+        const next = structuredClone(prev) as ColumnData[];
+        const src = next.find(c => c.id === activeCol.id)!;
+        const moving = src.items.find(i => i.id === activeId)!;
+        src.items = src.items.filter(i => i.id !== activeId);
+
+        const dst = next.find(c => c.id === overCol.id)!;
+        const overIdx = dst.items.findIndex(i => i.id === overId);
+        dst.items.splice(overIdx, 0, moving);
+        return next;
       });
     } else {
-      // Reordering items within the same column
-      const column = findColumn(activeId);
-      if (!column) {
-        setActiveId(null);
-        return;
-      }
-
-      setColumns(prevColumns => {
-        const columnIndex = prevColumns.findIndex(col => col.id === column.id);
-        const items = [...prevColumns[columnIndex].items];
-        
-        const activeItemIndex = items.findIndex(item => item && item.id === activeId);
-        const overItemIndex = items.findIndex(item => item && item.id === overId);
-        
-        if (activeItemIndex !== -1 && overItemIndex !== -1) {
-          const newItems = arrayMove(items, activeItemIndex, overItemIndex);
-          const newColumns = [...prevColumns];
-          newColumns[columnIndex] = {
-            ...prevColumns[columnIndex],
-            items: newItems
-          };
-          return newColumns;
-        }
-        
-        return prevColumns;
+      /* re-ordering inside column */
+      setColumns(prev => {
+        const next = structuredClone(prev) as ColumnData[];
+        const col = next.find(c => c.id === activeCol.id)!;
+        const oldIdx = col.items.findIndex(i => i.id === activeId);
+        const newIdx = col.items.findIndex(i => i.id === overId);
+        col.items = arrayMove(col.items, oldIdx, newIdx);
+        return next;
       });
     }
-    
+
     setActiveId(null);
   };
 
-  const activeItem = getActiveItem();
+  const unstack = (stackId: string) => {
+    setColumns(prev =>
+      prev.map(col => {
+        const idx = col.items.findIndex(i => i.id === stackId && i.type === 'stack');
+        if (idx === -1) return col;
+
+        const stack = col.items[idx] as StackItem;
+        const newItems = [...col.items];
+        newItems.splice(idx, 1, ...stack.cards);
+        return { ...col, items: newItems };
+      }),
+    );
+  };
+
+  /* NEW helpers just under the other stack helpers */
+const cycleStackNext = (id: string) => {
+  setColumns(prev =>
+    prev.map(col => ({
+      ...col,
+      items: col.items.map(it => {
+        if (it.type === 'stack' && it.id === id) {
+          const [first, ...rest] = it.cards;
+          return { ...it, cards: [...rest, first] };
+        }
+        return it;
+      }),
+    })),
+  );
+};
+
+const cycleStackPrev = (id: string) => {
+  setColumns(prev =>
+    prev.map(col => ({
+      ...col,
+      items: col.items.map(it => {
+        if (it.type === 'stack' && it.id === id) {
+          const last = it.cards[it.cards.length - 1];
+          const rest = it.cards.slice(0, -1);
+          return { ...it, cards: [last, ...rest] };
+        }
+        return it;
+      }),
+    })),
+  );
+};
+
+
+  /* active overlay item */
+  const activeEntity = activeId ? getItem(activeId) : null;
+
+  /* ------------------------------------------------------------------ */
+  /* RENDER */
+  /* ------------------------------------------------------------------ */
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col items-center p-4 sm:p-6 lg:p-8 overflow-hidden">
       <header className="mb-6 w-full max-w-7xl">
         <h1 className="text-3xl font-bold text-gray-900">Sprint Retrospective Board</h1>
       </header>
-      
+
       <ClientOnly fallback={<BoardSkeleton />}>
         <div className="w-full max-w-7xl">
           <DndContext
@@ -279,21 +303,24 @@ const BoardPage: React.FC = () => {
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
           >
-            <SortableContext
-              items={columns.map(col => col.id)}
-              strategy={horizontalListSortingStrategy}
-            >
+            <SortableContext items={columns.map(c => c.id)} strategy={horizontalListSortingStrategy}>
               <Board>
-                {columns.map((column) => (
-                  <Column 
-                    key={column.id} 
+                {columns.map(column => (
+                  <Column
+                    key={column.id}
                     id={column.id}
                     title={column.title}
                     description={column.description}
-                    items={column.items.filter(Boolean).map(item => item.id)}
+                    items={column.items.map(i => i.id)}
                   >
                     <div className="mt-4 space-y-3">
-                      {column.items.filter(Boolean).map((item) => {
+                      {column.items.map(item => {
+                        /* highlight must be strictly boolean */
+                        const highlight =
+                          overId === item.id &&
+                          activeId !== null &&
+                          activeId !== item.id;
+
                         if (item.type === 'card') {
                           return (
                             <Card
@@ -302,6 +329,7 @@ const BoardPage: React.FC = () => {
                               authorName={item.authorName}
                               content={item.content}
                               initialScore={item.initialScore}
+                              highlight={highlight}
                             />
                           );
                         }
@@ -315,6 +343,18 @@ const BoardPage: React.FC = () => {
                             />
                           );
                         }
+                        if (item.type === 'stack') {
+                          return (
+                            <StackCard
+                              key={item.id}
+                              stack={item}
+                              onCycleNext={cycleStackNext}
+                              onCyclePrev={cycleStackPrev}
+                              onUnstack={unstack}
+                              highlight={highlight}
+                            />
+                          );
+                        }
                         return null;
                       })}
                     </div>
@@ -322,63 +362,36 @@ const BoardPage: React.FC = () => {
                 ))}
               </Board>
             </SortableContext>
-            
+
+            {/* overlay */}
             <DragOverlay dropAnimation={dropAnimation}>
-              {activeItem && 'title' in activeItem ? (
-                // Dragging a column
-                <Column 
-                  id={activeItem.id}
-                  title={activeItem.title} 
-                  description={activeItem.description}
-                  items={activeItem.items.filter(Boolean).map(item => item.id)}
-                  isDragOverlay={true}
+              {activeEntity && 'title' in activeEntity ? (
+                <Column
+                  id={activeEntity.id}
+                  title={activeEntity.title}
+                  description={activeEntity.description}
+                  items={activeEntity.items.map(i => i.id)}
+                  isDragOverlay
                 >
-                  <div className="mt-4 space-y-3">
-                    {activeItem.items.filter(Boolean).map((item) => {
-                      if (item.type === 'card') {
-                        return (
-                          <Card
-                            key={item.id}
-                            id={item.id}
-                            authorName={item.authorName}
-                            content={item.content}
-                            initialScore={item.initialScore}
-                            isDragOverlay={true}
-                          />
-                        );
-                      }
-                      if (item.type === 'spacer') {
-                        return (
-                          <Spacer
-                            key={item.id}
-                            id={item.id}
-                            name={item.name}
-                            color={item.color}
-                            isDragOverlay={true}
-                          />
-                        );
-                      }
-                      return null;
-                    })}
-                  </div>
+                  <div className="mt-4 space-y-3" />
                 </Column>
-              ) : activeItem && activeItem.type === 'card' ? (
-                // Dragging a card
+              ) : activeEntity && (activeEntity as BoardItem).type === 'card' ? (
                 <Card
-                  id={activeItem.id}
-                  authorName={activeItem.authorName}
-                  content={activeItem.content}
-                  initialScore={activeItem.initialScore}
-                  isDragOverlay={true}
+                  id={activeEntity.id}
+                  authorName={(activeEntity as CardItem).authorName}
+                  content={(activeEntity as CardItem).content}
+                  initialScore={(activeEntity as CardItem).initialScore}
+                  isDragOverlay
                 />
-              ) : activeItem && activeItem.type === 'spacer' ? (
-                // Dragging a spacer
-                <Spacer
-                  id={activeItem.id}
-                  name={activeItem.name}
-                  color={activeItem.color}
-                  isDragOverlay={true}
+              ) : activeEntity && (activeEntity as BoardItem).type === 'stack' ? (
+                <StackCard
+                  stack={activeEntity as StackItem}
+                  onCycleNext={cycleStackNext}
+                  onCyclePrev={cycleStackPrev}
+                  onUnstack={() => {}}
                 />
+              ) : activeEntity && (activeEntity as BoardItem).type === 'spacer' ? (
+                <Spacer id={activeEntity.id} isDragOverlay />
               ) : null}
             </DragOverlay>
           </DndContext>
