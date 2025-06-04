@@ -1,56 +1,71 @@
 'use client';
 
 import React from 'react';
-import { useSortable } from '@dnd-kit/sortable';
+import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical } from 'lucide-react';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 
 interface ColumnProps {
   id: string;
   title: string;
   description: string;
-  items: string[]; // Array of item IDs for the sortable context
+  items: string[];            
   children: React.ReactNode;
-  isDragOverlay?: boolean; // Optional prop to disable sortable functionality
+  isDragOverlay?: boolean; 
 }
 
-const Column: React.FC<ColumnProps> = ({ id, title, description, items, children, isDragOverlay = false }) => {
-  // Only use sortable hook if not in drag overlay
-  const sortable = isDragOverlay ? null : useSortable({ 
+const Column: React.FC<ColumnProps> = ({
+  id,
+  title,
+  description,
+  items,
+  children,
+  isDragOverlay = false,
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
     id,
-    data: {
-      type: 'column',
-    }
+    data: { type: 'column' },
+    disabled: isDragOverlay,
   });
 
-  const style = isDragOverlay ? {} : sortable ? {
-    transform: CSS.Transform.toString(sortable.transform),
-    transition: sortable.transition,
-    opacity: sortable.isDragging ? 0.5 : 1,
-  } : {};
+  // Compute style only when not in drag overlay
+  const style = isDragOverlay
+    ? {}
+    : {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+      };
 
+  // Build the column’s inner content once
   const columnContent = (
     <div className="bg-gray-100 p-4 rounded-lg shadow-md w-80 flex-shrink-0 flex flex-col h-full max-h-[calc(100vh-180px)]">
-      {/* Only show drag handle if not in drag overlay */}
-      {!isDragOverlay && sortable && (
+      {/* Show drag handle only when not in drag overlay */}
+      {!isDragOverlay && (
         <div
-          {...sortable.attributes}
-          {...sortable.listeners}
+          {...attributes}
+          {...listeners}
           className="absolute top-2 right-2 cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors z-10"
           title="Drag to reorder column"
         >
           <GripVertical size={20} className="text-gray-400" />
         </div>
       )}
-      
-      {/* Column header with padding for drag handle */}
-      <div className={!isDragOverlay ? "pr-8" : ""}>
+
+      {/* Column header with space reserved for the handle */}
+      <div className={!isDragOverlay ? 'pr-8' : ''}>
         <h2 className="text-xl font-semibold mb-1 text-gray-800">{title}</h2>
         <p className="text-sm text-gray-600 mb-4">{description}</p>
       </div>
-      
-      {/* Only wrap in SortableContext if not in drag overlay */}
+
+      {/* Wrap items in SortableContext only when not a drag overlay */}
       {isDragOverlay ? (
         <div className="min-h-[100px] rounded-md pt-2 overflow-y-auto flex-grow custom-scrollbar">
           {children}
@@ -65,14 +80,14 @@ const Column: React.FC<ColumnProps> = ({ id, title, description, items, children
     </div>
   );
 
-  // If in drag overlay, return without sortable wrapper
+  // If this is a drag overlay, we skip attaching setNodeRef and style
   if (isDragOverlay) {
     return <div className="relative">{columnContent}</div>;
   }
 
-  // Otherwise, return with sortable functionality
+  // Otherwise, attach the sortable refs and style
   return (
-    <div ref={sortable?.setNodeRef} style={style} className="relative">
+    <div ref={setNodeRef} style={style} className="relative">
       {columnContent}
     </div>
   );

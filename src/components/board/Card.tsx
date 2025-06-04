@@ -12,18 +12,33 @@ interface CardProps {
   authorName: string;
   content: string;
   initialScore: number;
-  isDragOverlay?: boolean; // Optional prop to disable sortable functionality
+  isDragOverlay?: boolean; 
 }
 
 const Card: React.FC<CardProps> = ({ id, authorName, content, initialScore, isDragOverlay = false }) => {
-  // Only use sortable hook if not in drag overlay
-  const sortable = isDragOverlay ? null : useSortable({ id });
+  // Call useSortable unconditionally.
+  // Disable its functionality if the card is being rendered as a drag overlay.
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging, // Directly use isDragging from the hook
+  } = useSortable({
+    id,
+    disabled: isDragOverlay,
+  });
 
-  const style = isDragOverlay ? {} : sortable ? {
-    transform: CSS.Transform.toString(sortable.transform),
-    transition: sortable.transition,
-    opacity: sortable.isDragging ? 0.5 : 1,
-  } : {};
+  // Determine the style. If it's a drag overlay, style is minimal (empty object).
+  // Otherwise, apply transformations and opacity changes for dragging.
+  const style = isDragOverlay
+    ? {}
+    : {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+      };
 
   const cardContent = (
     <div className="bg-white p-3 rounded-md shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing">
@@ -46,18 +61,20 @@ const Card: React.FC<CardProps> = ({ id, authorName, content, initialScore, isDr
     </div>
   );
 
-  // If in drag overlay, return without sortable wrapper
+  // If rendering for a drag overlay, return only the content without the sortable wrapper div.
+  // The useSortable hook was called with disabled: true, so its return values (setNodeRef, attributes, listeners)
+  // are not applied to any DOM element in this case, which is correct for an overlay.
   if (isDragOverlay) {
     return cardContent;
   }
 
-  // Otherwise, return with sortable functionality
+  // Otherwise (if not a drag overlay), return the content wrapped in a div with sortable properties.
   return (
     <div
-      ref={sortable?.setNodeRef}
-      style={style}
-      {...(sortable?.attributes || {})}
-      {...(sortable?.listeners || {})}
+      ref={setNodeRef} // Always provided by the hook
+      style={style}    // Calculated above
+      {...attributes}  // Provided by the hook (will be minimal if disabled, but that path isn't taken here)
+      {...listeners}   // Provided by the hook
       className="touch-none"
     >
       {cardContent}

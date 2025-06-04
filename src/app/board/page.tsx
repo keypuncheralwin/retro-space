@@ -25,8 +25,9 @@ import Column from '@/components/board/Column';
 import Card from '@/components/board/Card';
 import Spacer from '@/components/board/Spacer';
 import Board from '@/components/board/Board';
+import BoardSkeleton from '@/components/skeletons/BoardSkeleton';
+import ClientOnly from '@/components/wrappers/ClientOnly';
 
-// Define simple types for our local data
 interface CardItem {
   id: string;
   type: 'card';
@@ -93,6 +94,8 @@ const dropAnimation: DropAnimation = {
     },
   }),
 };
+
+
 
 const BoardPage: React.FC = () => {
   const [columns, setColumns] = React.useState<ColumnData[]>(initialBoardData);
@@ -267,29 +270,71 @@ const BoardPage: React.FC = () => {
         <h1 className="text-3xl font-bold text-gray-900">Sprint Retrospective Board</h1>
       </header>
       
-      <div className="w-full max-w-7xl">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={columns.map(col => col.id)}
-            strategy={horizontalListSortingStrategy}
+      <ClientOnly fallback={<BoardSkeleton />}>
+        <div className="w-full max-w-7xl">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
           >
-            <Board>
-              {columns.map((column) => (
+            <SortableContext
+              items={columns.map(col => col.id)}
+              strategy={horizontalListSortingStrategy}
+            >
+              <Board>
+                {columns.map((column) => (
+                  <Column 
+                    key={column.id} 
+                    id={column.id}
+                    title={column.title}
+                    description={column.description}
+                    items={column.items.filter(Boolean).map(item => item.id)}
+                  >
+                    <div className="mt-4 space-y-3">
+                      {column.items.filter(Boolean).map((item) => {
+                        if (item.type === 'card') {
+                          return (
+                            <Card
+                              key={item.id}
+                              id={item.id}
+                              authorName={item.authorName}
+                              content={item.content}
+                              initialScore={item.initialScore}
+                            />
+                          );
+                        }
+                        if (item.type === 'spacer') {
+                          return (
+                            <Spacer
+                              key={item.id}
+                              id={item.id}
+                              name={item.name}
+                              color={item.color}
+                            />
+                          );
+                        }
+                        return null;
+                      })}
+                    </div>
+                  </Column>
+                ))}
+              </Board>
+            </SortableContext>
+            
+            <DragOverlay dropAnimation={dropAnimation}>
+              {activeItem && 'title' in activeItem ? (
+                // Dragging a column
                 <Column 
-                  key={column.id} 
-                  id={column.id}
-                  title={column.title}
-                  description={column.description}
-                  items={column.items.filter(Boolean).map(item => item.id)}
+                  id={activeItem.id}
+                  title={activeItem.title} 
+                  description={activeItem.description}
+                  items={activeItem.items.filter(Boolean).map(item => item.id)}
+                  isDragOverlay={true}
                 >
                   <div className="mt-4 space-y-3">
-                    {column.items.filter(Boolean).map((item) => {
+                    {activeItem.items.filter(Boolean).map((item) => {
                       if (item.type === 'card') {
                         return (
                           <Card
@@ -298,6 +343,7 @@ const BoardPage: React.FC = () => {
                             authorName={item.authorName}
                             content={item.content}
                             initialScore={item.initialScore}
+                            isDragOverlay={true}
                           />
                         );
                       }
@@ -308,6 +354,7 @@ const BoardPage: React.FC = () => {
                             id={item.id}
                             name={item.name}
                             color={item.color}
+                            isDragOverlay={true}
                           />
                         );
                       }
@@ -315,70 +362,28 @@ const BoardPage: React.FC = () => {
                     })}
                   </div>
                 </Column>
-              ))}
-            </Board>
-          </SortableContext>
-          
-          <DragOverlay dropAnimation={dropAnimation}>
-            {activeItem && 'title' in activeItem ? (
-              // Dragging a column
-              <Column 
-                id={activeItem.id}
-                title={activeItem.title} 
-                description={activeItem.description}
-                items={activeItem.items.filter(Boolean).map(item => item.id)}
-                isDragOverlay={true}
-              >
-                <div className="mt-4 space-y-3">
-                  {activeItem.items.filter(Boolean).map((item) => {
-                    if (item.type === 'card') {
-                      return (
-                        <Card
-                          key={item.id}
-                          id={item.id}
-                          authorName={item.authorName}
-                          content={item.content}
-                          initialScore={item.initialScore}
-                          isDragOverlay={true}
-                        />
-                      );
-                    }
-                    if (item.type === 'spacer') {
-                      return (
-                        <Spacer
-                          key={item.id}
-                          id={item.id}
-                          name={item.name}
-                          color={item.color}
-                          isDragOverlay={true}
-                        />
-                      );
-                    }
-                    return null;
-                  })}
-                </div>
-              </Column>
-            ) : activeItem && activeItem.type === 'card' ? (
-              // Dragging a card
-              <Card
-                id={activeItem.id}
-                authorName={activeItem.authorName}
-                content={activeItem.content}
-                initialScore={activeItem.initialScore}
-                isDragOverlay={true}
-              />
-            ) : activeItem && activeItem.type === 'spacer' ? (
-              // Dragging a spacer
-              <Spacer
-                id={activeItem.id}
-                name={activeItem.name}
-                color={activeItem.color}
-                isDragOverlay={true}
-              />
-            ) : null}
-          </DragOverlay>
-        </DndContext>
-      </div>
+              ) : activeItem && activeItem.type === 'card' ? (
+                // Dragging a card
+                <Card
+                  id={activeItem.id}
+                  authorName={activeItem.authorName}
+                  content={activeItem.content}
+                  initialScore={activeItem.initialScore}
+                  isDragOverlay={true}
+                />
+              ) : activeItem && activeItem.type === 'spacer' ? (
+                // Dragging a spacer
+                <Spacer
+                  id={activeItem.id}
+                  name={activeItem.name}
+                  color={activeItem.color}
+                  isDragOverlay={true}
+                />
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+        </div>
+      </ClientOnly>
     </div>
   );
 };
