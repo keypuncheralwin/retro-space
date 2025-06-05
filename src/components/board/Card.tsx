@@ -12,7 +12,6 @@ interface CardProps {
   content: string;
   initialScore: number;
   isDragOverlay?: boolean;
-  /** True while another item is hovering & this card is the drop-target */
   highlight?: boolean;
 }
 
@@ -24,26 +23,39 @@ const Card: React.FC<CardProps> = ({
   isDragOverlay = false,
   highlight = false,
 }) => {
+  /* ------------------------------------------------------------------ */
+  /* Always call the hook; disable it for overlay cards                  */
+  /* ------------------------------------------------------------------ */
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
-    disabled: isDragOverlay,
+    disabled: isDragOverlay, // ← not draggable when overlay
   });
 
+  /* ------------------------------------------------------------------ */
+  /* Style – apply drag transforms only when the hook is enabled        */
+  /* ------------------------------------------------------------------ */
   const wrapperStyle: React.CSSProperties = isDragOverlay
     ? {}
     : {
-        transform: CSS.Transform.toString(transform),
+        transform: CSS.Transform.toString(transform ?? null),
         transition,
         opacity: isDragging ? 0.5 : 1,
       };
 
+  /* ------------------------------------------------------------------ */
+  /* Render                                                             */
+  /* ------------------------------------------------------------------ */
   return (
     <div
-      ref={setNodeRef}
+      /* Skip setNodeRef / drag props for overlay so it’s NOT droppable */
+      ref={isDragOverlay ? undefined : setNodeRef}
       style={wrapperStyle}
-      {...attributes}
-      {...listeners}
-      className="relative touch-none group"
+      {...(isDragOverlay ? {} : attributes)}
+      {...(isDragOverlay ? {} : listeners)}
+      className={[
+        'relative select-none',
+        isDragOverlay ? '' : 'touch-none cursor-grab active:cursor-grabbing',
+      ].join(' ')}
     >
       {highlight && (
         <div className="absolute inset-0 rounded-md border-2 border-dashed border-blue-500 pointer-events-none z-[120]" />
@@ -53,19 +65,13 @@ const Card: React.FC<CardProps> = ({
         className={[
           'bg-white p-3 rounded-md shadow-sm',
           highlight ? 'border-transparent' : 'border border-gray-200',
-          // the cursor change makes it clear the whole card is draggable
-          'hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing',
+          'hover:shadow-md transition-shadow',
         ].join(' ')}
       >
         {/* content */}
         <div className="flex flex-col">
-          {/* author */}
           <div className="text-xs text-gray-500 mb-1">{authorName}</div>
-
-          {/* main text */}
           <p className="text-sm text-gray-800 mb-2 whitespace-pre-wrap">{content}</p>
-
-          {/* footer */}
           <div className="flex justify-between items-center text-xs text-gray-500 mt-2">
             <EmojiReactions />
             <VoteControls initialScore={initialScore} />

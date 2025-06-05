@@ -1,3 +1,4 @@
+// file: Spacer.tsx
 'use client';
 
 import React from 'react';
@@ -8,30 +9,39 @@ import { GripVertical } from 'lucide-react';
 interface SpacerProps {
   id: string;
   name?: string;
-  color?: string; // Expecting a Tailwind CSS color class e.g., 'bg-red-500'
-  isDragOverlay?: boolean; // Optional prop to disable sortable functionality
+  color?: string; // Tailwind color class, e.g. 'bg-red-500'
+  isDragOverlay?: boolean;
 }
 
 const Spacer: React.FC<SpacerProps> = ({ id, name, color, isDragOverlay = false }) => {
-  // Only use sortable hook if not in drag overlay
-  const sortable = isDragOverlay ? null : useSortable({ id });
+  /* --------------------------------------------------------------
+   * Hook is always executed; it’s simply disabled for overlays
+   * -------------------------------------------------------------- */
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+    disabled: isDragOverlay,
+  });
 
-  const style = isDragOverlay
+  /* -------------------------------------------------------------- */
+  /* Styles – only apply drag transforms when hook is active        */
+  /* -------------------------------------------------------------- */
+  const style: React.CSSProperties = isDragOverlay
     ? {}
-    : sortable
-      ? {
-          transform: CSS.Transform.toString(sortable.transform),
-          transition: sortable.transition,
-          opacity: sortable.isDragging ? 0.5 : 1,
-        }
-      : {};
+    : {
+        transform: CSS.Transform.toString(transform ?? null),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+      };
 
+  /* -------------------------------------------------------------- */
+  /* Inner content                                                   */
+  /* -------------------------------------------------------------- */
   const spacerContent = (
     <div
       className={`my-2 py-2 rounded ${color || 'bg-gray-200'} cursor-grab active:cursor-grabbing hover:shadow-sm transition-shadow`}
     >
       <div className="flex items-center gap-2 px-3">
-        {/* Drag handle */}
+        {/* Drag handle (purely visual) */}
         <div className="text-gray-600 opacity-0 hover:opacity-100 transition-opacity">
           <GripVertical size={16} />
         </div>
@@ -39,26 +49,23 @@ const Spacer: React.FC<SpacerProps> = ({ id, name, color, isDragOverlay = false 
         {name ? (
           <div className="text-xs font-medium text-gray-700 truncate flex-1">{name}</div>
         ) : (
-          <div className="h-2 flex-1"></div>
+          <div className="h-2 flex-1" />
         )}
       </div>
     </div>
   );
 
-  // If in drag overlay, return without sortable wrapper
+  /* -------------------------------------------------------------- */
+  /* Render                                                          */
+  /* -------------------------------------------------------------- */
   if (isDragOverlay) {
+    // Overlay: no refs / listeners, just render the content
     return spacerContent;
   }
 
-  // Otherwise, return with sortable functionality
+  // Normal sortable spacer
   return (
-    <div
-      ref={sortable?.setNodeRef}
-      style={style}
-      {...(sortable?.attributes || {})}
-      {...(sortable?.listeners || {})}
-      className="touch-none"
-    >
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="touch-none">
       {spacerContent}
     </div>
   );
