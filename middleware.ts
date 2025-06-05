@@ -8,7 +8,7 @@ export function middleware(request: NextRequest) {
 
   // Public routes that don't require authentication
   const publicRoutes = ['/signin', '/api/send-code', '/api/verify-code'];
-  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
+  const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
 
   // If user is authenticated and trying to access signin, redirect to home
   if (isAuthenticated && pathname === '/signin') {

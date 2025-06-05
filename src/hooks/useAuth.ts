@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  User as FirebaseUser, 
-  signInWithCustomToken, 
-  signOut, 
-  onAuthStateChanged 
+import {
+  User as FirebaseUser,
+  signInWithCustomToken,
+  signOut,
+  onAuthStateChanged,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { clearSessionCookie } from '@/lib/session';
@@ -39,12 +39,12 @@ export function useAuth() {
     user,
     loading,
     isAuthenticated: !!user,
-    
+
     displayName: user?.displayName || null,
     email: user?.email || null,
     uid: user?.uid || null,
     emailVerified: user?.emailVerified || false,
-    
+
     signInWithToken,
     logout,
   };
@@ -55,7 +55,7 @@ export function useAuth() {
  */
 export function useRequireAuth() {
   const { user, loading } = useAuth();
-  
+
   useEffect(() => {
     if (!loading && !user) {
       window.location.href = '/signin';

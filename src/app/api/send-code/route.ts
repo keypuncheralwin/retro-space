@@ -10,14 +10,17 @@ export async function POST(request: NextRequest) {
     const { email }: SendCodeRequest = await request.json();
 
     if (!email || !email.includes('@')) {
-      return NextResponse.json<ApiResponse>({
-        success: false,
-        error: 'Valid email is required'
-      }, { status: 400 });
+      return NextResponse.json<ApiResponse>(
+        {
+          success: false,
+          error: 'Valid email is required',
+        },
+        { status: 400 },
+      );
     }
 
     // Check for cooldown period (1 minute)
-    const cooldownPeriod = 1 * 60 * 1000; 
+    const cooldownPeriod = 1 * 60 * 1000;
     const currentTime = Date.now();
 
     const docRef = adminDb.collection('verification_codes').doc(email);
@@ -28,11 +31,16 @@ export async function POST(request: NextRequest) {
       const createdAt = data?.createdAt?.toDate();
 
       if (createdAt && createdAt.getTime() + cooldownPeriod > currentTime) {
-        const remainingTime = Math.ceil((createdAt.getTime() + cooldownPeriod - currentTime) / 1000);
-        return NextResponse.json<ApiResponse>({
-          success: false,
-          error: `Please wait ${remainingTime} seconds before requesting a new code.`
-        }, { status: 429 });
+        const remainingTime = Math.ceil(
+          (createdAt.getTime() + cooldownPeriod - currentTime) / 1000,
+        );
+        return NextResponse.json<ApiResponse>(
+          {
+            success: false,
+            error: `Please wait ${remainingTime} seconds before requesting a new code.`,
+          },
+          { status: 429 },
+        );
       }
     }
 
@@ -76,22 +84,27 @@ export async function POST(request: NextRequest) {
       });
     } catch (emailError) {
       console.error('Error sending email:', emailError);
-      return NextResponse.json<ApiResponse>({
-        success: false,
-        error: 'Failed to send verification email'
-      }, { status: 500 });
+      return NextResponse.json<ApiResponse>(
+        {
+          success: false,
+          error: 'Failed to send verification email',
+        },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json<ApiResponse>({
       success: true,
-      data: { message: 'Verification code sent successfully' }
+      data: { message: 'Verification code sent successfully' },
     });
-
   } catch (error) {
     console.error('Error sending verification code:', error);
-    return NextResponse.json<ApiResponse>({
-      success: false,
-      error: 'Failed to send verification code'
-    }, { status: 500 });
+    return NextResponse.json<ApiResponse>(
+      {
+        success: false,
+        error: 'Failed to send verification code',
+      },
+      { status: 500 },
+    );
   }
 }

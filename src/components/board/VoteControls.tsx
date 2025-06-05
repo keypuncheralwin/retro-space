@@ -10,8 +10,8 @@ interface VoteControlsProps {
 const VoteControls: React.FC<VoteControlsProps> = ({ initialScore }) => {
   const [score, setScore] = React.useState(initialScore);
 
-  const handleUpvote = () => setScore(prevScore => prevScore + 1);
-  const handleDownvote = () => setScore(prevScore => prevScore - 1);
+  const handleUpvote = () => setScore((prevScore) => prevScore + 1);
+  const handleDownvote = () => setScore((prevScore) => prevScore - 1);
 
   return (
     <div className="flex items-center">

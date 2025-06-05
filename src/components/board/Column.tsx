@@ -9,9 +9,9 @@ interface ColumnProps {
   id: string;
   title: string;
   description: string;
-  items: string[];            
+  items: string[];
   children: React.ReactNode;
-  isDragOverlay?: boolean; 
+  isDragOverlay?: boolean;
 }
 
 const Column: React.FC<ColumnProps> = ({
@@ -22,14 +22,7 @@ const Column: React.FC<ColumnProps> = ({
   children,
   isDragOverlay = false,
 }) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
     data: { type: 'column' },
     disabled: isDragOverlay,

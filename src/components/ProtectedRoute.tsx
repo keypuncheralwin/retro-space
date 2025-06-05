@@ -7,13 +7,13 @@ interface ProtectedRouteProps {
   fallback?: React.ReactNode;
 }
 
-export default function ProtectedRoute({ 
-  children, 
+export default function ProtectedRoute({
+  children,
   fallback = (
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-gray-600">Loading...</div>
     </div>
-  ) 
+  ),
 }: ProtectedRouteProps) {
   const { user, loading } = useRequireAuth();
 

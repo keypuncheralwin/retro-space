@@ -9,11 +9,11 @@ import { User } from 'firebase/auth';
  */
 export async function setSessionCookie(user: User): Promise<void> {
   if (!user) return;
-  
+
   try {
     // Get the token from Firebase Auth
     const token = await user.getIdToken(true);
-    
+
     // Call our API endpoint to set the cookie
     await fetch('/api/auth/session', {
       method: 'POST',
@@ -22,7 +22,7 @@ export async function setSessionCookie(user: User): Promise<void> {
       },
       body: JSON.stringify({ token }),
     });
-    
+
     console.log('📝 Session cookie set successfully');
   } catch (error) {
     console.error('Failed to set session cookie:', error);
@@ -37,7 +37,7 @@ export async function clearSessionCookie(): Promise<void> {
     await fetch('/api/auth/session', {
       method: 'DELETE',
     });
-    
+
     console.log('🗑️ Session cookie cleared');
   } catch (error) {
     console.error('Failed to clear session cookie:', error);

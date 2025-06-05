@@ -4,7 +4,7 @@ type Event = MouseEvent | TouchEvent;
 
 export function useOnClickOutside(
   ref: RefObject<HTMLElement | null>,
-  handler: (event: Event) => void
+  handler: (event: Event) => void,
 ): void {
   useEffect(() => {
     const listener = (event: Event) => {

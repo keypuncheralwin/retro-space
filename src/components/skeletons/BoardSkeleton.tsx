@@ -12,8 +12,7 @@ const BoardSkeleton: React.FC = () => {
           <div
             key={index}
             className="bg-gray-100 p-4 rounded-lg shadow-md w-80 flex-shrink-0 h-full max-h-[calc(100vh-180px)] animate-pulse"
-          >
-          </div>
+          ></div>
         ))}
       </Board>
     </div>

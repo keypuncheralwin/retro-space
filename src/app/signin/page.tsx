@@ -3,7 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { ApiResponse, SendCodeRequest, VerifyCodeRequest, SignInState, VerifyCodeResponseData } from '@/types';
+import {
+  ApiResponse,
+  SendCodeRequest,
+  VerifyCodeRequest,
+  SignInState,
+  VerifyCodeResponseData,
+} from '@/types';
 
 export default function SignIn() {
   const router = useRouter();
@@ -24,7 +30,7 @@ export default function SignIn() {
     let interval: NodeJS.Timeout;
     if (state.timeLeft > 0) {
       interval = setInterval(() => {
-        setState(prev => ({ ...prev, timeLeft: prev.timeLeft - 1 }));
+        setState((prev) => ({ ...prev, timeLeft: prev.timeLeft - 1 }));
       }, 1000);
     }
     return () => clearInterval(interval);
@@ -44,7 +50,7 @@ export default function SignIn() {
       const data: ApiResponse = await response.json();
 
       if (data.success) {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           step: 'code',
           email,
@@ -85,7 +91,7 @@ export default function SignIn() {
       if (data.success && data.data) {
         // Check if name is required for new user
         if (data.data.nameRequired) {
-          setState(prev => ({ ...prev, step: 'name', isNewUser: true }));
+          setState((prev) => ({ ...prev, step: 'name', isNewUser: true }));
           return;
         }
 
@@ -110,12 +116,12 @@ export default function SignIn() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const email = formData.get('email') as string;
-    
+
     if (!email || !email.includes('@')) {
       setError('Please enter a valid email address');
       return;
     }
-    
+
     handleSendCode(email);
   };
 
@@ -141,9 +147,7 @@ export default function SignIn() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-lg shadow-sm border p-8">
-          <h1 className="text-2xl font-semibold text-center text-gray-900 mb-8">
-            Sign In
-          </h1>
+          <h1 className="text-2xl font-semibold text-center text-gray-900 mb-8">Sign In</h1>
 
           {error && (
             <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-md">
@@ -181,9 +185,7 @@ export default function SignIn() {
           {state.step === 'code' && (
             <div className="space-y-6">
               <div className="text-center">
-                <p className="text-sm text-gray-600 mb-4">
-                  We sent a 4-digit code to
-                </p>
+                <p className="text-sm text-gray-600 mb-4">We sent a 4-digit code to</p>
                 <p className="font-medium text-gray-900">{state.email}</p>
               </div>
 
@@ -229,7 +231,7 @@ export default function SignIn() {
               </div>
 
               <button
-                onClick={() => setState(prev => ({ ...prev, step: 'email', timeLeft: 0 }))}
+                onClick={() => setState((prev) => ({ ...prev, step: 'email', timeLeft: 0 }))}
                 className="w-full text-sm text-gray-500 hover:text-gray-700"
               >
                 Use a different email

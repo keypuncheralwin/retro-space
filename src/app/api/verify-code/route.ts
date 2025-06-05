@@ -7,41 +7,53 @@ export async function POST(request: NextRequest) {
     const { email, code, name }: VerifyCodeRequest = await request.json();
 
     if (!email || !code) {
-      return NextResponse.json<ApiResponse>({
-        success: false,
-        error: 'Email and code are required'
-      }, { status: 400 });
+      return NextResponse.json<ApiResponse>(
+        {
+          success: false,
+          error: 'Email and code are required',
+        },
+        { status: 400 },
+      );
     }
 
     // Get verification code from Firestore
     const verificationDoc = await adminDb.collection('verification_codes').doc(email).get();
-    
+
     if (!verificationDoc.exists) {
-      return NextResponse.json<ApiResponse>({
-        success: false,
-        error: 'Invalid verification code'
-      }, { status: 400 });
+      return NextResponse.json<ApiResponse>(
+        {
+          success: false,
+          error: 'Invalid verification code',
+        },
+        { status: 400 },
+      );
     }
 
     const verificationData = verificationDoc.data();
-    
+
     // Check if code matches and hasn't been used
     if (verificationData?.code !== code || verificationData?.used) {
-      return NextResponse.json<ApiResponse>({
-        success: false,
-        error: 'Invalid or expired verification code'
-      }, { status: 400 });
+      return NextResponse.json<ApiResponse>(
+        {
+          success: false,
+          error: 'Invalid or expired verification code',
+        },
+        { status: 400 },
+      );
     }
 
     // Check if code is expired
     const now = new Date();
     const expiresAt = verificationData.expiresAt.toDate();
-    
+
     if (now > expiresAt) {
-      return NextResponse.json<ApiResponse>({
-        success: false,
-        error: 'Verification code has expired'
-      }, { status: 400 });
+      return NextResponse.json<ApiResponse>(
+        {
+          success: false,
+          error: 'Verification code has expired',
+        },
+        { status: 400 },
+      );
     }
 
     let user;
@@ -50,7 +62,7 @@ export async function POST(request: NextRequest) {
     try {
       // Try to get existing user
       user = await adminAuth.getUserByEmail(email);
-      
+
       // For existing users, mark code as used immediately
       await adminDb.collection('verification_codes').doc(email).update({ used: true });
     } catch (error) {
@@ -59,10 +71,10 @@ export async function POST(request: NextRequest) {
         // If no name is provided for a new user, return with nameRequired flag
         return NextResponse.json<ApiResponse>({
           success: true,
-          data: { nameRequired: true }
+          data: { nameRequired: true },
         });
       }
-      
+
       // Name is provided, create the new user
       user = await adminAuth.createUser({
         email,
@@ -70,7 +82,7 @@ export async function POST(request: NextRequest) {
         displayName: name,
       });
       isNewUser = true;
-      
+
       // For new users with name, mark code as used after successful user creation
       await adminDb.collection('verification_codes').doc(email).update({ used: true });
     }
@@ -80,7 +92,10 @@ export async function POST(request: NextRequest) {
       uid: user.uid,
       email,
       name: name || user.displayName || '',
-      createdAt: isNewUser ? new Date() : (await adminDb.collection('users').doc(user.uid).get()).data()?.createdAt?.toDate() || new Date(),
+      createdAt: isNewUser
+        ? new Date()
+        : (await adminDb.collection('users').doc(user.uid).get()).data()?.createdAt?.toDate() ||
+          new Date(),
       lastSignIn: new Date(),
     };
 
@@ -92,11 +107,11 @@ export async function POST(request: NextRequest) {
     // Set auth cookie
     const response = NextResponse.json<ApiResponse>({
       success: true,
-      data: { 
-        customToken, 
+      data: {
+        customToken,
         user: userData,
-        isNewUser
-      }
+        isNewUser,
+      },
     });
 
     // Set a simple auth cookie for middleware routing
@@ -108,12 +123,14 @@ export async function POST(request: NextRequest) {
     });
 
     return response;
-
   } catch (error) {
     console.error('Error verifying code:', error);
-    return NextResponse.json<ApiResponse>({
-      success: false,
-      error: 'Failed to verify code'
-    }, { status: 500 });
+    return NextResponse.json<ApiResponse>(
+      {
+        success: false,
+        error: 'Failed to verify code',
+      },
+      { status: 500 },
+    );
   }
 }

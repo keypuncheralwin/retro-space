@@ -16,24 +16,28 @@ const Spacer: React.FC<SpacerProps> = ({ id, name, color, isDragOverlay = false 
   // Only use sortable hook if not in drag overlay
   const sortable = isDragOverlay ? null : useSortable({ id });
 
-  const style = isDragOverlay ? {} : sortable ? {
-    transform: CSS.Transform.toString(sortable.transform),
-    transition: sortable.transition,
-    opacity: sortable.isDragging ? 0.5 : 1,
-  } : {};
+  const style = isDragOverlay
+    ? {}
+    : sortable
+      ? {
+          transform: CSS.Transform.toString(sortable.transform),
+          transition: sortable.transition,
+          opacity: sortable.isDragging ? 0.5 : 1,
+        }
+      : {};
 
   const spacerContent = (
-    <div className={`my-2 py-2 rounded ${color || 'bg-gray-200'} cursor-grab active:cursor-grabbing hover:shadow-sm transition-shadow`}>
+    <div
+      className={`my-2 py-2 rounded ${color || 'bg-gray-200'} cursor-grab active:cursor-grabbing hover:shadow-sm transition-shadow`}
+    >
       <div className="flex items-center gap-2 px-3">
         {/* Drag handle */}
         <div className="text-gray-600 opacity-0 hover:opacity-100 transition-opacity">
           <GripVertical size={16} />
         </div>
-        
+
         {name ? (
-          <div className="text-xs font-medium text-gray-700 truncate flex-1">
-            {name}
-          </div>
+          <div className="text-xs font-medium text-gray-700 truncate flex-1">{name}</div>
         ) : (
           <div className="h-2 flex-1"></div>
         )}

@@ -1,6 +1,6 @@
 /**
  * Firestore Database Models
- * 
+ *
  * This file defines the Firestore document models used in the sign-in flow.
  */
 
@@ -14,7 +14,7 @@ import { Timestamp } from 'firebase/firestore';
 export interface UserDocument {
   uid: string;
   email: string;
-  name: string;       // Display name provided during sign-up
+  name: string; // Display name provided during sign-up
   createdAt: Timestamp | Date;
   lastSignIn: Timestamp | Date;
 }
@@ -25,9 +25,9 @@ export interface UserDocument {
  * Document ID: User's email address
  */
 export interface VerificationCodeDocument {
-  email: string;     // Email the code was sent to
-  code: string;      // 4-digit verification code
+  email: string; // Email the code was sent to
+  code: string; // 4-digit verification code
   createdAt: Timestamp | Date;
-  expiresAt: Timestamp | Date;  // Code expires after 15 minutes
-  used: boolean;     // Whether code has been used for verification
+  expiresAt: Timestamp | Date; // Code expires after 15 minutes
+  used: boolean; // Whether code has been used for verification
 }

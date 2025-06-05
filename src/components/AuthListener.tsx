@@ -13,5 +13,5 @@ export default function AuthListener() {
     return unsubscribe;
   }, []);
 
-  return null; 
+  return null;
 }
