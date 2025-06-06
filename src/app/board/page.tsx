@@ -41,6 +41,8 @@ export interface CardItem {
   authorName: string;
   content: string;
   initialScore: number;
+  participantId: string;
+  createdAt: Date;
 }
 
 export interface SpacerItem {
@@ -48,6 +50,8 @@ export interface SpacerItem {
   type: 'spacer';
   name?: string;
   color?: string;
+  participantId: string;
+  createdAt: Date;
 }
 
 export type BoardItem = CardItem | SpacerItem | StackItem;
@@ -58,6 +62,23 @@ interface ColumnData {
   description: string;
   items: BoardItem[];
 }
+
+/* ------------------------------------------------------------------ */
+/* MOCK PARTICIPANT DATA */
+/* ------------------------------------------------------------------ */
+
+const MOCK_PARTICIPANTS = [
+  { id: 'user-1', name: 'Alex P.' },
+  { id: 'user-2', name: 'Jamie S.' },
+  { id: 'user-3', name: 'Casey L.' },
+  { id: 'user-4', name: 'Morgan R.' },
+  { id: 'user-5', name: 'Riley B.' },
+  { id: 'user-6', name: 'Taylor K.' },
+  { id: 'user-7', name: 'Jordan M.' },
+];
+
+// Mock current user - in real app this would come from auth/context
+const CURRENT_USER = MOCK_PARTICIPANTS[0];
 
 /* ------------------------------------------------------------------ */
 /* SAMPLE DATA */
@@ -75,14 +96,24 @@ const initialBoardData: ColumnData[] = [
         authorName: 'Alex P.',
         content: 'Successful feature launch!',
         initialScore: 5,
+        participantId: 'user-1',
+        createdAt: new Date('2025-01-01T10:00:00Z'),
       },
-      { id: 'spacer1', type: 'spacer', name: 'Team Wins' },
+      {
+        id: 'spacer1',
+        type: 'spacer',
+        name: 'Team Wins',
+        participantId: 'user-1',
+        createdAt: new Date('2025-01-01T10:05:00Z'),
+      },
       {
         id: 'card2',
         type: 'card',
         authorName: 'Jamie S.',
         content: 'Great collaboration on the new API.',
         initialScore: 3,
+        participantId: 'user-2',
+        createdAt: new Date('2025-01-01T10:10:00Z'),
       },
     ],
   },
@@ -97,6 +128,8 @@ const initialBoardData: ColumnData[] = [
         authorName: 'Casey L.',
         content: 'Unexpected bugs in staging.',
         initialScore: 0,
+        participantId: 'user-3',
+        createdAt: new Date('2025-01-01T10:15:00Z'),
       },
       {
         id: 'card4',
@@ -104,14 +137,24 @@ const initialBoardData: ColumnData[] = [
         authorName: 'Morgan R.',
         content: 'Meeting overload this sprint.',
         initialScore: 2,
+        participantId: 'user-4',
+        createdAt: new Date('2025-01-01T10:20:00Z'),
       },
-      { id: 'spacer2', type: 'spacer', color: 'bg-yellow-200' },
+      {
+        id: 'spacer2',
+        type: 'spacer',
+        color: 'bg-yellow-200',
+        participantId: 'user-4',
+        createdAt: new Date('2025-01-01T10:25:00Z'),
+      },
       {
         id: 'card5',
         type: 'card',
         authorName: 'Riley B.',
         content: 'Documentation needs updating.',
         initialScore: 1,
+        participantId: 'user-5',
+        createdAt: new Date('2025-01-01T10:30:00Z'),
       },
     ],
   },
@@ -126,14 +169,25 @@ const initialBoardData: ColumnData[] = [
         authorName: 'Taylor K.',
         content: 'Dedicate time for tech debt.',
         initialScore: 4,
+        participantId: 'user-6',
+        createdAt: new Date('2025-01-01T10:35:00Z'),
       },
-      { id: 'spacer3', type: 'spacer', name: 'Process Ideas', color: 'bg-blue-200' },
+      {
+        id: 'spacer3',
+        type: 'spacer',
+        name: 'Process Ideas',
+        color: 'bg-blue-200',
+        participantId: 'user-6',
+        createdAt: new Date('2025-01-01T10:40:00Z'),
+      },
       {
         id: 'card7',
         type: 'card',
         authorName: 'Jordan M.',
         content: 'More pair programming sessions.',
         initialScore: 2,
+        participantId: 'user-7',
+        createdAt: new Date('2025-01-01T10:45:00Z'),
       },
       {
         id: 'card8',
@@ -141,6 +195,8 @@ const initialBoardData: ColumnData[] = [
         authorName: 'Dev Team',
         content: 'Improve CI/CD pipeline speed.',
         initialScore: 0,
+        participantId: 'user-7',
+        createdAt: new Date('2025-01-01T10:50:00Z'),
       },
     ],
   },
@@ -158,13 +214,6 @@ const dropAnimation: DropAnimation = {
 
 /* ------------------------------------------------------------------ */
 /* PAGE */
-/*
- * Drag & Drop Behavior:
- * - Cards can be reordered by quick drag & drop
- * - Cards stack only after hovering over another card/stack for STACK_DELAY ms
- * - Blue highlight appears when stacking mode is active
- * - Columns can be reordered by dragging
- */
 /* ------------------------------------------------------------------ */
 
 const BoardPage: React.FC = () => {
@@ -173,17 +222,12 @@ const BoardPage: React.FC = () => {
   const [overId, setOverId] = React.useState<string | null>(null);
   const [stackingEnabled, setStackingEnabled] = React.useState(false);
   const [stackIndices, setStackIndices] = React.useState<Record<string, number>>({});
+  const [activeCardInputs, setActiveCardInputs] = React.useState<Set<string>>(new Set());
   const stackTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const STACK_DELAY = 600; // ms
 
-  // used inside handleDragOver:
-  // ‣ rafRef   → stores the current requestAnimationFrame handle so we can cancel it
-  //              (throttles setColumns to max-1 per frame, preventing update-storms on mobile)
   const rafRef = React.useRef<number | null>(null);
-  // ‣ lastPreviewRef → remembers the last {column, overId} slot we showed the
-  //                    “gap preview” for; if the pointer is still over the same slot
-  //                    we skip the expensive state update entirely
   const lastPreviewRef = React.useRef<{ colId: string; overId: string } | null>(null);
 
   /* sensors */
@@ -212,6 +256,60 @@ const BoardPage: React.FC = () => {
       if (itm) return itm;
     }
     return null;
+  };
+
+  /* ------------------------------------------------------------------ */
+  /* ADD ITEM HANDLERS */
+  /* ------------------------------------------------------------------ */
+
+  const addCard = (columnId: string) => {
+    setActiveCardInputs((prev) => new Set(prev).add(columnId));
+  };
+
+  const saveCardInput = (columnId: string, content: string) => {
+    const newCard: CardItem = {
+      id: uuid(),
+      type: 'card',
+      authorName: CURRENT_USER.name,
+      content: content,
+      initialScore: 0,
+      participantId: CURRENT_USER.id,
+      createdAt: new Date(),
+    };
+
+    setColumns((prev) =>
+      prev.map((col) => (col.id === columnId ? { ...col, items: [...col.items, newCard] } : col)),
+    );
+
+    // Remove the input
+    setActiveCardInputs((prev) => {
+      const next = new Set(prev);
+      next.delete(columnId);
+      return next;
+    });
+  };
+
+  const cancelCardInput = (columnId: string) => {
+    setActiveCardInputs((prev) => {
+      const next = new Set(prev);
+      next.delete(columnId);
+      return next;
+    });
+  };
+
+  const addSpacer = (columnId: string) => {
+    const newSpacer: SpacerItem = {
+      id: uuid(),
+      type: 'spacer',
+      name: 'New section',
+      color: 'bg-gray-200',
+      participantId: CURRENT_USER.id,
+      createdAt: new Date(),
+    };
+
+    setColumns((prev) =>
+      prev.map((col) => (col.id === columnId ? { ...col, items: [...col.items, newSpacer] } : col)),
+    );
   };
 
   /* dnd handlers */
@@ -568,6 +666,12 @@ const BoardPage: React.FC = () => {
                     title={column.title}
                     description={column.description}
                     items={column.items.filter((i) => i != null).map((i) => i.id)}
+                    onAddCard={() => addCard(column.id)}
+                    onAddSpacer={() => addSpacer(column.id)}
+                    showCardInput={activeCardInputs.has(column.id)}
+                    onSaveCard={(content) => saveCardInput(column.id, content)}
+                    onCancelCard={() => cancelCardInput(column.id)}
+                    currentUserName={CURRENT_USER.name}
                   >
                     <div className="mt-4 space-y-3">
                       {column.items
@@ -641,6 +745,12 @@ const BoardPage: React.FC = () => {
                   title={activeEntity.title}
                   description={activeEntity.description}
                   items={activeEntity.items.filter((i) => i != null).map((i) => i.id)}
+                  onAddCard={() => {}}
+                  onAddSpacer={() => {}}
+                  showCardInput={false}
+                  onSaveCard={() => {}}
+                  onCancelCard={() => {}}
+                  currentUserName=""
                   isDragOverlay
                 >
                   <div className="mt-4 space-y-3" />

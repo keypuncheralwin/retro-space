@@ -4,6 +4,8 @@ import React from 'react';
 import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical } from 'lucide-react';
+import ColumnToolbar from './ColumnToolbar';
+import CardInput from './CardInput';
 
 interface ColumnProps {
   id: string;
@@ -11,6 +13,12 @@ interface ColumnProps {
   description: string;
   items: string[];
   children: React.ReactNode;
+  onAddCard: () => void;
+  onAddSpacer: () => void;
+  showCardInput?: boolean;
+  onSaveCard?: (content: string) => void;
+  onCancelCard?: () => void;
+  currentUserName?: string;
   isDragOverlay?: boolean;
 }
 
@@ -20,6 +28,12 @@ const Column: React.FC<ColumnProps> = ({
   description,
   items,
   children,
+  onAddCard,
+  onAddSpacer,
+  showCardInput = false,
+  onSaveCard,
+  onCancelCard,
+  currentUserName = 'User',
   isDragOverlay = false,
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -37,7 +51,7 @@ const Column: React.FC<ColumnProps> = ({
         opacity: isDragging ? 0.5 : 1,
       };
 
-  // Build the column’s inner content once
+  // Build the column's inner content once
   const columnContent = (
     <div className="bg-gray-100 p-4 rounded-lg shadow-md w-80 flex-shrink-0 flex flex-col h-full max-h-[calc(100vh-180px)]">
       {/* Show drag handle only when not in drag overlay */}
@@ -57,6 +71,21 @@ const Column: React.FC<ColumnProps> = ({
         <h2 className="text-xl font-semibold mb-1 text-gray-800">{title}</h2>
         <p className="text-sm text-gray-600 mb-4">{description}</p>
       </div>
+
+      {/* Toolbar - only show when not in drag overlay */}
+      {!isDragOverlay && <ColumnToolbar onAddCard={onAddCard} onAddSpacer={onAddSpacer} />}
+
+      {/* Card Input - show right after toolbar, stays fixed */}
+      {!isDragOverlay && showCardInput && onSaveCard && onCancelCard && (
+        <div className="mb-4">
+          <CardInput
+            onSave={onSaveCard}
+            onCancel={onCancelCard}
+            authorName={currentUserName}
+            placeholder="Describe what happened..."
+          />
+        </div>
+      )}
 
       {/* Wrap items in SortableContext only when not a drag overlay */}
       {isDragOverlay ? (
