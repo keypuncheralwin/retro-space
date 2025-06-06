@@ -3,18 +3,27 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, Edit2, Trash2 } from 'lucide-react';
 
 interface SpacerProps {
   id: string;
   name?: string;
   color?: string; // Tailwind color class, e.g. 'bg-red-500'
   isDragOverlay?: boolean;
+  onEdit?: (id: string) => void;
+  onDelete?: (id: string) => void;
 }
 
-const Spacer: React.FC<SpacerProps> = ({ id, name, color, isDragOverlay = false }) => {
+const Spacer: React.FC<SpacerProps> = ({
+  id,
+  name,
+  color,
+  isDragOverlay = false,
+  onEdit,
+  onDelete,
+}) => {
   /* --------------------------------------------------------------
-   * Hook is always executed; it’s simply disabled for overlays
+   * Hook is always executed; it's simply disabled for overlays
    * -------------------------------------------------------------- */
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
@@ -37,7 +46,7 @@ const Spacer: React.FC<SpacerProps> = ({ id, name, color, isDragOverlay = false 
   /* -------------------------------------------------------------- */
   const spacerContent = (
     <div
-      className={`my-2 py-2 rounded ${color || 'bg-gray-200'} cursor-grab active:cursor-grabbing hover:shadow-sm transition-shadow`}
+      className={`my-2 py-2 rounded ${color || 'bg-gray-200'} cursor-grab active:cursor-grabbing hover:shadow-sm transition-shadow group relative`}
     >
       <div className="flex items-center gap-2 px-3">
         {/* Drag handle (purely visual) */}
@@ -49,6 +58,38 @@ const Spacer: React.FC<SpacerProps> = ({ id, name, color, isDragOverlay = false 
           <div className="text-xs font-medium text-gray-700 truncate flex-1">{name}</div>
         ) : (
           <div className="h-2 flex-1" />
+        )}
+
+        {/* Edit/Delete buttons - only show when not drag overlay */}
+        {!isDragOverlay && (onEdit || onDelete) && (
+          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {onEdit && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(id);
+                }}
+                className="p-1 bg-white rounded shadow-sm hover:bg-gray-50 text-gray-600 hover:text-blue-600 transition-colors"
+                title="Edit spacer"
+                aria-label="Edit spacer"
+              >
+                <Edit2 size={12} />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(id);
+                }}
+                className="p-1 bg-white rounded shadow-sm hover:bg-gray-50 text-gray-600 hover:text-red-600 transition-colors"
+                title="Delete spacer"
+                aria-label="Delete spacer"
+              >
+                <Trash2 size={12} />
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>

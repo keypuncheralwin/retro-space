@@ -63,6 +63,14 @@ interface ColumnData {
   items: BoardItem[];
 }
 
+interface EditingItem {
+  id: string;
+  type: 'card' | 'spacer';
+  content: string;
+  columnId: string;
+  stackId?: string; // For editing cards within stacks
+}
+
 /* ------------------------------------------------------------------ */
 /* MOCK PARTICIPANT DATA */
 /* ------------------------------------------------------------------ */
@@ -222,7 +230,14 @@ const BoardPage: React.FC = () => {
   const [overId, setOverId] = React.useState<string | null>(null);
   const [stackingEnabled, setStackingEnabled] = React.useState(false);
   const [stackIndices, setStackIndices] = React.useState<Record<string, number>>({});
+
+  // Separate state for card and spacer inputs
   const [activeCardInputs, setActiveCardInputs] = React.useState<Set<string>>(new Set());
+  const [activeSpacerInputs, setActiveSpacerInputs] = React.useState<Set<string>>(new Set());
+
+  // Edit state
+  const [editingItem, setEditingItem] = React.useState<EditingItem | null>(null);
+
   const stackTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const STACK_DELAY = 600; // ms
@@ -262,7 +277,16 @@ const BoardPage: React.FC = () => {
   /* ADD ITEM HANDLERS */
   /* ------------------------------------------------------------------ */
 
+  // Card handlers
   const addCard = (columnId: string) => {
+    // Close any active inputs and editing
+    setActiveSpacerInputs((prev) => {
+      const next = new Set(prev);
+      next.delete(columnId);
+      return next;
+    });
+    setEditingItem(null);
+
     setActiveCardInputs((prev) => new Set(prev).add(columnId));
   };
 
@@ -297,11 +321,24 @@ const BoardPage: React.FC = () => {
     });
   };
 
+  // Spacer handlers
   const addSpacer = (columnId: string) => {
+    // Close any active inputs and editing
+    setActiveCardInputs((prev) => {
+      const next = new Set(prev);
+      next.delete(columnId);
+      return next;
+    });
+    setEditingItem(null);
+
+    setActiveSpacerInputs((prev) => new Set(prev).add(columnId));
+  };
+
+  const saveSpacerInput = (columnId: string, content: string) => {
     const newSpacer: SpacerItem = {
       id: uuid(),
       type: 'spacer',
-      name: 'New section',
+      name: content.trim() || 'New section',
       color: 'bg-gray-200',
       participantId: CURRENT_USER.id,
       createdAt: new Date(),
@@ -309,6 +346,199 @@ const BoardPage: React.FC = () => {
 
     setColumns((prev) =>
       prev.map((col) => (col.id === columnId ? { ...col, items: [...col.items, newSpacer] } : col)),
+    );
+
+    setActiveSpacerInputs((prev) => {
+      const next = new Set(prev);
+      next.delete(columnId);
+      return next;
+    });
+  };
+
+  const cancelSpacerInput = (columnId: string) => {
+    setActiveSpacerInputs((prev) => {
+      const next = new Set(prev);
+      next.delete(columnId);
+      return next;
+    });
+  };
+
+  /* ------------------------------------------------------------------ */
+  /* EDIT/DELETE HANDLERS */
+  /* ------------------------------------------------------------------ */
+
+  const editCard = (cardId: string) => {
+    // Close any active inputs
+    setActiveCardInputs(new Set());
+    setActiveSpacerInputs(new Set());
+
+    // Find the card and its column
+    const column = findColumn(cardId);
+    if (!column) return;
+
+    const item = getItem(cardId) as CardItem;
+    if (!item || item.type !== 'card') return;
+
+    setEditingItem({
+      id: cardId,
+      type: 'card',
+      content: item.content,
+      columnId: column.id,
+    });
+  };
+
+  const editStackCard = (stackId: string, cardId: string) => {
+    // Close any active inputs
+    setActiveCardInputs(new Set());
+    setActiveSpacerInputs(new Set());
+
+    // Find the stack and its column
+    const column = findColumn(stackId);
+    if (!column) return;
+
+    const stack = getItem(stackId) as StackItem;
+    if (!stack || stack.type !== 'stack') return;
+
+    const card = stack.cards.find((c) => c.id === cardId);
+    if (!card) return;
+
+    setEditingItem({
+      id: cardId,
+      type: 'card',
+      content: card.content,
+      columnId: column.id,
+      stackId: stackId,
+    });
+  };
+
+  const editSpacer = (spacerId: string) => {
+    // Close any active inputs
+    setActiveCardInputs(new Set());
+    setActiveSpacerInputs(new Set());
+
+    // Find the spacer and its column
+    const column = findColumn(spacerId);
+    if (!column) return;
+
+    const item = getItem(spacerId) as SpacerItem;
+    if (!item || item.type !== 'spacer') return;
+
+    setEditingItem({
+      id: spacerId,
+      type: 'spacer',
+      content: item.name || '',
+      columnId: column.id,
+    });
+  };
+
+  const saveEdit = (content: string) => {
+    if (!editingItem) return;
+
+    setColumns((prev) =>
+      prev.map((col) => {
+        if (col.id !== editingItem.columnId) return col;
+
+        if (editingItem.stackId) {
+          // Editing a card within a stack
+          return {
+            ...col,
+            items: col.items.map((item) => {
+              if (item && item.type === 'stack' && item.id === editingItem.stackId) {
+                return {
+                  ...item,
+                  cards: item.cards.map((card) =>
+                    card.id === editingItem.id ? { ...card, content } : card,
+                  ),
+                };
+              }
+              return item;
+            }),
+          };
+        } else {
+          // Editing a regular item
+          return {
+            ...col,
+            items: col.items.map((item) => {
+              if (item && item.id === editingItem.id) {
+                if (editingItem.type === 'card') {
+                  return { ...item, content } as CardItem;
+                } else if (editingItem.type === 'spacer') {
+                  return { ...item, name: content.trim() || 'New section' } as SpacerItem;
+                }
+              }
+              return item;
+            }),
+          };
+        }
+      }),
+    );
+
+    setEditingItem(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingItem(null);
+  };
+
+  const deleteCard = (cardId: string) => {
+    if (!confirm('Are you sure you want to delete this card?')) return;
+
+    setColumns((prev) =>
+      prev.map((col) => ({
+        ...col,
+        items: col.items.filter((item) => item && item.id !== cardId),
+      })),
+    );
+  };
+
+  const deleteStackCard = (stackId: string, cardId: string) => {
+    if (!confirm('Are you sure you want to delete this card?')) return;
+
+    setColumns((prev) =>
+      prev.map((col) => ({
+        ...col,
+        items: col.items
+          .map((item) => {
+            if (item && item.type === 'stack' && item.id === stackId) {
+              const newCards = item.cards.filter((card) => card.id !== cardId);
+
+              // If only one card left, unstack it
+              if (newCards.length === 1) {
+                return newCards[0];
+              }
+
+              // If no cards left, remove the stack entirely
+              if (newCards.length === 0) {
+                return null;
+              }
+
+              return { ...item, cards: newCards };
+            }
+            return item;
+          })
+          .filter((item) => item !== null),
+      })),
+    );
+
+    // Clean up stack index if stack was removed
+    setStackIndices((prev) => {
+      const next = { ...prev };
+      const stack = getItem(stackId) as StackItem;
+      if (!stack || stack.type !== 'stack') {
+        delete next[stackId];
+      }
+      return next;
+    });
+  };
+
+  const deleteSpacer = (spacerId: string) => {
+    if (!confirm('Are you sure you want to delete this spacer?')) return;
+
+    setColumns((prev) =>
+      prev.map((col) => ({
+        ...col,
+        items: col.items.filter((item) => item && item.id !== spacerId),
+      })),
     );
   };
 
@@ -668,9 +898,18 @@ const BoardPage: React.FC = () => {
                     items={column.items.filter((i) => i != null).map((i) => i.id)}
                     onAddCard={() => addCard(column.id)}
                     onAddSpacer={() => addSpacer(column.id)}
+                    // Card input props
                     showCardInput={activeCardInputs.has(column.id)}
                     onSaveCard={(content) => saveCardInput(column.id, content)}
                     onCancelCard={() => cancelCardInput(column.id)}
+                    // Spacer input props
+                    showSpacerInput={activeSpacerInputs.has(column.id)}
+                    onSaveSpacer={(content) => saveSpacerInput(column.id, content)}
+                    onCancelSpacer={() => cancelSpacerInput(column.id)}
+                    // Edit props
+                    editingItem={editingItem?.columnId === column.id ? editingItem : null}
+                    onSaveEdit={saveEdit}
+                    onCancelEdit={cancelEdit}
                     currentUserName={CURRENT_USER.name}
                   >
                     <div className="mt-4 space-y-3">
@@ -702,6 +941,8 @@ const BoardPage: React.FC = () => {
                                 content={item.content}
                                 initialScore={item.initialScore}
                                 highlight={highlight}
+                                onEdit={editCard}
+                                onDelete={deleteCard}
                               />
                             );
                           }
@@ -712,6 +953,8 @@ const BoardPage: React.FC = () => {
                                 id={item.id}
                                 name={item.name}
                                 color={item.color}
+                                onEdit={editSpacer}
+                                onDelete={deleteSpacer}
                               />
                             );
                           }
@@ -725,6 +968,8 @@ const BoardPage: React.FC = () => {
                                 onCycleNext={cycleStackNext}
                                 onCyclePrev={cycleStackPrev}
                                 onUnstack={unstack}
+                                onEditCard={editStackCard}
+                                onDeleteCard={deleteStackCard}
                                 highlight={highlight}
                               />
                             );
@@ -750,6 +995,9 @@ const BoardPage: React.FC = () => {
                   showCardInput={false}
                   onSaveCard={() => {}}
                   onCancelCard={() => {}}
+                  showSpacerInput={false}
+                  onSaveSpacer={() => {}}
+                  onCancelSpacer={() => {}}
                   currentUserName=""
                   isDragOverlay
                 >

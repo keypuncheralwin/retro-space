@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ChevronUp, ChevronDown, Layers } from 'lucide-react';
+import { ChevronUp, ChevronDown, Layers, Edit2, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 
 import Card from './Card';
@@ -22,6 +22,8 @@ interface StackProps {
   onCycleNext: (id: string) => void;
   onCyclePrev: (id: string) => void;
   onUnstack: (id: string) => void;
+  onEditCard?: (stackId: string, cardId: string) => void;
+  onDeleteCard?: (stackId: string, cardId: string) => void;
   highlight?: boolean;
   isDragOverlay?: boolean;
 }
@@ -29,7 +31,7 @@ interface StackProps {
 /* ─── visual constants ─── */
 const OFFSET_Y = 10;
 const SCALE_STEP = 0.04;
-const MAX_GHOSTS = 3;
+const MAX_GHOSTS = 4;
 const SHADOW = '0 3px 8px rgba(0 0 0 / .08)';
 
 /* ─── Rolodex flip variants ─── */
@@ -46,6 +48,8 @@ const StackCard: React.FC<StackProps> = ({
   onCycleNext,
   onCyclePrev,
   onUnstack,
+  onEditCard,
+  onDeleteCard,
   highlight = false,
   isDragOverlay = false,
 }) => {
@@ -82,6 +86,18 @@ const StackCard: React.FC<StackProps> = ({
   const handlePrev = () => {
     setDir(-1);
     onCyclePrev(stack.id);
+  };
+
+  const handleEditCard = () => {
+    if (onEditCard && top) {
+      onEditCard(stack.id, top.id);
+    }
+  };
+
+  const handleDeleteCard = () => {
+    if (onDeleteCard && top) {
+      onDeleteCard(stack.id, top.id);
+    }
   };
 
   return (
@@ -138,6 +154,38 @@ const StackCard: React.FC<StackProps> = ({
           />
         </motion.div>
       </AnimatePresence>
+
+      {/* Edit/Delete buttons for current card - only show when not drag overlay */}
+      {!isDragOverlay && (onEditCard || onDeleteCard) && (
+        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-[110]">
+          {onEditCard && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEditCard();
+              }}
+              className="p-1 bg-white rounded shadow-sm hover:bg-gray-50 text-gray-600 hover:text-blue-600 transition-colors"
+              title="Edit current card"
+              aria-label="Edit current card"
+            >
+              <Edit2 size={12} />
+            </button>
+          )}
+          {onDeleteCard && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteCard();
+              }}
+              className="p-1 bg-white rounded shadow-sm hover:bg-gray-50 text-gray-600 hover:text-red-600 transition-colors"
+              title="Delete current card"
+              aria-label="Delete current card"
+            >
+              <Trash2 size={12} />
+            </button>
+          )}
+        </div>
+      )}
 
       {/* ▲ ▼ Unstack buttons with counter */}
       {!isDragOverlay && (

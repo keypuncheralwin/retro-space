@@ -5,7 +5,7 @@ import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical } from 'lucide-react';
 import ColumnToolbar from './ColumnToolbar';
-import CardInput from './CardInput';
+import ColumnInput from './ColumnInput';
 
 interface ColumnProps {
   id: string;
@@ -15,9 +15,22 @@ interface ColumnProps {
   children: React.ReactNode;
   onAddCard: () => void;
   onAddSpacer: () => void;
+
+  // Card input props
   showCardInput?: boolean;
   onSaveCard?: (content: string) => void;
   onCancelCard?: () => void;
+
+  // Spacer input props
+  showSpacerInput?: boolean;
+  onSaveSpacer?: (content: string) => void;
+  onCancelSpacer?: () => void;
+
+  // Edit props
+  editingItem?: { id: string; type: 'card' | 'spacer'; content: string } | null;
+  onSaveEdit?: (content: string) => void;
+  onCancelEdit?: () => void;
+
   currentUserName?: string;
   isDragOverlay?: boolean;
 }
@@ -33,6 +46,12 @@ const Column: React.FC<ColumnProps> = ({
   showCardInput = false,
   onSaveCard,
   onCancelCard,
+  showSpacerInput = false,
+  onSaveSpacer,
+  onCancelSpacer,
+  editingItem,
+  onSaveEdit,
+  onCancelEdit,
   currentUserName = 'User',
   isDragOverlay = false,
 }) => {
@@ -75,14 +94,42 @@ const Column: React.FC<ColumnProps> = ({
       {/* Toolbar - only show when not in drag overlay */}
       {!isDragOverlay && <ColumnToolbar onAddCard={onAddCard} onAddSpacer={onAddSpacer} />}
 
-      {/* Card Input - show right after toolbar, stays fixed */}
-      {!isDragOverlay && showCardInput && onSaveCard && onCancelCard && (
+      {/* Edit Input - show when editing an item */}
+      {!isDragOverlay && editingItem && onSaveEdit && onCancelEdit && (
         <div className="mb-4">
-          <CardInput
+          <ColumnInput
+            onSave={onSaveEdit}
+            onCancel={onCancelEdit}
+            authorName={currentUserName}
+            inputType={editingItem.type}
+            placeholder={editingItem.type === 'card' ? 'Edit your card...' : 'Edit section name...'}
+            initialContent={editingItem.content}
+          />
+        </div>
+      )}
+
+      {/* Card Input - show when active */}
+      {!isDragOverlay && showCardInput && onSaveCard && onCancelCard && !editingItem && (
+        <div className="mb-4">
+          <ColumnInput
             onSave={onSaveCard}
             onCancel={onCancelCard}
             authorName={currentUserName}
+            inputType="card"
             placeholder="Describe what happened..."
+          />
+        </div>
+      )}
+
+      {/* Spacer Input - show when active */}
+      {!isDragOverlay && showSpacerInput && onSaveSpacer && onCancelSpacer && !editingItem && (
+        <div className="mb-4">
+          <ColumnInput
+            onSave={onSaveSpacer}
+            onCancel={onCancelSpacer}
+            authorName={currentUserName}
+            inputType="spacer"
+            placeholder="Enter section name..."
           />
         </div>
       )}
