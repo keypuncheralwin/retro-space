@@ -16,6 +16,8 @@ interface CardProps {
   highlight?: boolean;
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
+  currentUserId?: string;
+  currentUserName?: string;
 }
 
 // Helper function to parse and render content with gifs
@@ -80,6 +82,8 @@ const Card: React.FC<CardProps> = ({
   highlight = false,
   onEdit,
   onDelete,
+  currentUserId,
+  currentUserName,
 }) => {
   /* ------------------------------------------------------------------ */
   /* Always call the hook; disable it for overlay cards                  */
@@ -163,7 +167,7 @@ const Card: React.FC<CardProps> = ({
           <div className="text-xs text-gray-500 mb-1">{authorName}</div>
           <div className="text-sm text-gray-800 mb-2">{renderContent(content)}</div>
           <div className="flex justify-between items-center text-xs text-gray-500 mt-2">
-            <EmojiReactions />
+            <EmojiReactions currentUserId={currentUserId} currentUserName={currentUserName} />
             <VoteControls initialScore={initialScore} />
           </div>
         </div>

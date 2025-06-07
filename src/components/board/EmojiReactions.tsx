@@ -9,9 +9,22 @@ import { useOnClickOutside } from '@/hooks/useOnClickOutside';
 const PICKER_HEIGHT = 320; // Corresponds to h-80 (20rem)
 const PICKER_MARGIN = 4; // Gap between button and picker (e.g., 0.25rem, was mb-1 or mt-1 equivalent)
 
-const EmojiReactions: React.FC = () => {
+interface ReactionUser {
+  userId: string;
+  userName: string;
+}
+
+interface EmojiReactionsProps {
+  currentUserId?: string;
+  currentUserName?: string;
+}
+
+const EmojiReactions: React.FC<EmojiReactionsProps> = ({
+  currentUserId = 'user-1',
+  currentUserName = 'You',
+}) => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [reactions, setReactions] = useState<Record<string, number>>({});
+  const [reactions, setReactions] = useState<Record<string, ReactionUser[]>>({});
 
   const buttonRef = useRef<HTMLButtonElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null); // Ref for the picker's content (for useOnClickOutside)
@@ -29,11 +42,56 @@ const EmojiReactions: React.FC = () => {
   });
 
   const handleEmojiSelect = (emojiData: Emoji) => {
-    setReactions((prevReactions) => ({
-      ...prevReactions,
-      [emojiData.emoji]: (prevReactions[emojiData.emoji] || 0) + 1,
-    }));
+    const emoji = emojiData.emoji;
+
+    setReactions((prevReactions) => {
+      const existingReactions = prevReactions[emoji] || [];
+
+      // Check if user already reacted with this emoji
+      const userAlreadyReacted = existingReactions.some((user) => user.userId === currentUserId);
+
+      if (userAlreadyReacted) {
+        // Remove the user's reaction
+        return {
+          ...prevReactions,
+          [emoji]: existingReactions.filter((user) => user.userId !== currentUserId),
+        };
+      } else {
+        // Add the user's reaction
+        return {
+          ...prevReactions,
+          [emoji]: [...existingReactions, { userId: currentUserId, userName: currentUserName }],
+        };
+      }
+    });
+
     setShowEmojiPicker(false);
+  };
+
+  const handleReactionClick = (emoji: string) => {
+    setReactions((prevReactions) => {
+      const existingReactions = prevReactions[emoji] || [];
+      const userAlreadyReacted = existingReactions.some((user) => user.userId === currentUserId);
+
+      if (userAlreadyReacted) {
+        // Remove the user's reaction
+        const newReactions = existingReactions.filter((user) => user.userId !== currentUserId);
+
+        // If no reactions left, remove the emoji entirely
+        if (newReactions.length === 0) {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { [emoji]: _removed, ...rest } = prevReactions;
+          return rest;
+        }
+
+        return {
+          ...prevReactions,
+          [emoji]: newReactions,
+        };
+      }
+
+      return prevReactions; // No change if user hasn't reacted
+    });
   };
 
   // Function to calculate and set the optimal picker position
@@ -94,6 +152,36 @@ const EmojiReactions: React.FC = () => {
       window.removeEventListener('scroll', calculateAndSetPosition, true);
     };
   }, [showEmojiPicker]); // Re-calculate when showEmojiPicker changes
+
+  // Helper function to get tooltip text
+  const getTooltipText = (emoji: string, users: ReactionUser[]) => {
+    if (users.length === 0) return '';
+
+    const userHasReacted = users.some((user) => user.userId === currentUserId);
+    const otherUsers = users.filter((user) => user.userId !== currentUserId);
+
+    if (users.length === 1) {
+      return userHasReacted
+        ? 'You reacted with this emoji'
+        : `${users[0].userName} reacted with this emoji`;
+    }
+
+    if (userHasReacted) {
+      if (otherUsers.length === 0) {
+        return 'You reacted with this emoji';
+      } else if (otherUsers.length === 1) {
+        return `You and ${otherUsers[0].userName} reacted with this emoji`;
+      } else {
+        return `You and ${otherUsers.length} others reacted with this emoji`;
+      }
+    } else {
+      if (users.length === 2) {
+        return `${users[0].userName} and ${users[1].userName} reacted with this emoji`;
+      } else {
+        return `${users[0].userName} and ${users.length - 1} others reacted with this emoji`;
+      }
+    }
+  };
 
   const PickerComponent = showEmojiPicker
     ? ReactDOM.createPortal(
@@ -157,15 +245,32 @@ const EmojiReactions: React.FC = () => {
 
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
-      {Object.entries(reactions).map(([emoji, count]) => (
-        <div
-          key={emoji}
-          className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded-full flex items-center border border-gray-200"
-        >
-          <span className="text-sm mr-0.5">{emoji}</span>
-          <span className="text-xs font-medium">{count}</span>
-        </div>
-      ))}
+      {Object.entries(reactions)
+        .filter(([, users]) => users.length > 0) // Only show reactions with users
+        .map(([emoji, users]) => {
+          const userHasReacted = users.some((user) => user.userId === currentUserId);
+          const tooltipText = getTooltipText(emoji, users);
+
+          return (
+            <button
+              key={emoji}
+              onClick={() => (userHasReacted ? handleReactionClick(emoji) : undefined)}
+              className={`
+                px-1.5 py-0.5 rounded-full flex items-center border transition-all
+                ${
+                  userHasReacted
+                    ? 'bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200 cursor-pointer'
+                    : 'bg-gray-100 text-gray-700 border-gray-200 cursor-default'
+                }
+              `}
+              title={tooltipText}
+              disabled={!userHasReacted}
+            >
+              <span className="text-sm mr-0.5">{emoji}</span>
+              <span className="text-xs font-medium">{users.length}</span>
+            </button>
+          );
+        })}
       <div>
         <button
           ref={buttonRef}

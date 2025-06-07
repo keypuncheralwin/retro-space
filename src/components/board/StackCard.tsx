@@ -26,12 +26,14 @@ interface StackProps {
   onDeleteCard?: (stackId: string, cardId: string) => void;
   highlight?: boolean;
   isDragOverlay?: boolean;
+  currentUserId?: string;
+  currentUserName?: string;
 }
 
 /* ─── visual constants ─── */
 const OFFSET_Y = 10;
 const SCALE_STEP = 0.04;
-const MAX_GHOSTS = 4;
+const MAX_GHOSTS = 3;
 const SHADOW = '0 3px 8px rgba(0 0 0 / .08)';
 
 /* ─── Rolodex flip variants ─── */
@@ -52,6 +54,8 @@ const StackCard: React.FC<StackProps> = ({
   onDeleteCard,
   highlight = false,
   isDragOverlay = false,
+  currentUserId,
+  currentUserName,
 }) => {
   /* dnd-kit */
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -151,6 +155,8 @@ const StackCard: React.FC<StackProps> = ({
             initialScore={top.initialScore}
             isDragOverlay
             highlight={highlight}
+            currentUserId={currentUserId}
+            currentUserName={currentUserName}
           />
         </motion.div>
       </AnimatePresence>

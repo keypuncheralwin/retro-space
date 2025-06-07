@@ -238,6 +238,9 @@ const BoardPage: React.FC = () => {
   // Edit state
   const [editingItem, setEditingItem] = React.useState<EditingItem | null>(null);
 
+  // Column editing state
+  const [editingColumnId, setEditingColumnId] = React.useState<string | null>(null);
+
   const stackTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const STACK_DELAY = 600; // ms
@@ -286,6 +289,7 @@ const BoardPage: React.FC = () => {
       return next;
     });
     setEditingItem(null);
+    setEditingColumnId(null);
 
     setActiveCardInputs((prev) => new Set(prev).add(columnId));
   };
@@ -330,6 +334,7 @@ const BoardPage: React.FC = () => {
       return next;
     });
     setEditingItem(null);
+    setEditingColumnId(null);
 
     setActiveSpacerInputs((prev) => new Set(prev).add(columnId));
   };
@@ -367,10 +372,31 @@ const BoardPage: React.FC = () => {
   /* EDIT/DELETE HANDLERS */
   /* ------------------------------------------------------------------ */
 
+  const editColumn = (columnId: string) => {
+    // Close any active inputs and item editing
+    setActiveCardInputs(new Set());
+    setActiveSpacerInputs(new Set());
+    setEditingItem(null);
+
+    setEditingColumnId(columnId);
+  };
+
+  const saveColumnEdit = (columnId: string, title: string, description: string) => {
+    setColumns((prev) =>
+      prev.map((col) => (col.id === columnId ? { ...col, title, description } : col)),
+    );
+    setEditingColumnId(null);
+  };
+
+  const cancelColumnEdit = () => {
+    setEditingColumnId(null);
+  };
+
   const editCard = (cardId: string) => {
     // Close any active inputs
     setActiveCardInputs(new Set());
     setActiveSpacerInputs(new Set());
+    setEditingColumnId(null);
 
     // Find the card and its column
     const column = findColumn(cardId);
@@ -391,6 +417,7 @@ const BoardPage: React.FC = () => {
     // Close any active inputs
     setActiveCardInputs(new Set());
     setActiveSpacerInputs(new Set());
+    setEditingColumnId(null);
 
     // Find the stack and its column
     const column = findColumn(stackId);
@@ -415,6 +442,7 @@ const BoardPage: React.FC = () => {
     // Close any active inputs
     setActiveCardInputs(new Set());
     setActiveSpacerInputs(new Set());
+    setEditingColumnId(null);
 
     // Find the spacer and its column
     const column = findColumn(spacerId);
@@ -910,6 +938,13 @@ const BoardPage: React.FC = () => {
                     editingItem={editingItem?.columnId === column.id ? editingItem : null}
                     onSaveEdit={saveEdit}
                     onCancelEdit={cancelEdit}
+                    // Column edit props
+                    isEditingColumn={editingColumnId === column.id}
+                    onEditColumn={() => editColumn(column.id)}
+                    onSaveColumn={(title, description) =>
+                      saveColumnEdit(column.id, title, description)
+                    }
+                    onCancelColumnEdit={cancelColumnEdit}
                     currentUserName={CURRENT_USER.name}
                   >
                     <div className="mt-4 space-y-3">
@@ -943,6 +978,8 @@ const BoardPage: React.FC = () => {
                                 highlight={highlight}
                                 onEdit={editCard}
                                 onDelete={deleteCard}
+                                currentUserId={CURRENT_USER.id}
+                                currentUserName={CURRENT_USER.name}
                               />
                             );
                           }
@@ -971,6 +1008,8 @@ const BoardPage: React.FC = () => {
                                 onEditCard={editStackCard}
                                 onDeleteCard={deleteStackCard}
                                 highlight={highlight}
+                                currentUserId={CURRENT_USER.id}
+                                currentUserName={CURRENT_USER.name}
                               />
                             );
                           }
@@ -998,6 +1037,10 @@ const BoardPage: React.FC = () => {
                   showSpacerInput={false}
                   onSaveSpacer={() => {}}
                   onCancelSpacer={() => {}}
+                  isEditingColumn={false}
+                  onEditColumn={() => {}}
+                  onSaveColumn={() => {}}
+                  onCancelColumnEdit={() => {}}
                   currentUserName=""
                   isDragOverlay
                 >
@@ -1010,6 +1053,8 @@ const BoardPage: React.FC = () => {
                   content={(activeEntity as CardItem).content}
                   initialScore={(activeEntity as CardItem).initialScore}
                   isDragOverlay
+                  currentUserId={CURRENT_USER.id}
+                  currentUserName={CURRENT_USER.name}
                 />
               ) : activeEntity && (activeEntity as BoardItem).type === 'stack' ? (
                 <StackCard
@@ -1020,6 +1065,8 @@ const BoardPage: React.FC = () => {
                   onCyclePrev={cycleStackPrev}
                   onUnstack={() => {}}
                   isDragOverlay
+                  currentUserId={CURRENT_USER.id}
+                  currentUserName={CURRENT_USER.name}
                 />
               ) : activeEntity && (activeEntity as BoardItem).type === 'spacer' ? (
                 <Spacer id={activeEntity.id} isDragOverlay />
