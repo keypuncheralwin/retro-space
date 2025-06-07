@@ -68,7 +68,7 @@ interface EditingItem {
   type: 'card' | 'spacer';
   content: string;
   columnId: string;
-  stackId?: string; // For editing cards within stacks
+  stackId?: string;
 }
 
 /* ------------------------------------------------------------------ */
@@ -102,23 +102,52 @@ const initialBoardData: ColumnData[] = [
         id: 'card1',
         type: 'card',
         authorName: 'Alex P.',
-        content: 'Successful feature launch!',
+        content: 'Lot of work got done!',
         initialScore: 5,
         participantId: 'user-1',
         createdAt: new Date('2025-01-01T10:00:00Z'),
       },
       {
-        id: 'spacer1',
-        type: 'spacer',
-        name: 'Team Wins',
-        participantId: 'user-1',
-        createdAt: new Date('2025-01-01T10:05:00Z'),
-      },
-      {
         id: 'card2',
         type: 'card',
+        authorName: 'Alex P.',
+        content: 'world 360 performance improvements!',
+        initialScore: 5,
+        participantId: 'user-1',
+        createdAt: new Date('2025-01-01T10:00:00Z'),
+      },
+      {
+        id: 'card3',
+        type: 'card',
         authorName: 'Jamie S.',
-        content: 'Great collaboration on the new API.',
+        content: 'Tims Auth 0 implementation!',
+        initialScore: 3,
+        participantId: 'user-2',
+        createdAt: new Date('2025-01-01T10:10:00Z'),
+      },
+      {
+        id: 'card4',
+        type: 'card',
+        authorName: 'Jamie S.',
+        content: 'deadline was extended!',
+        initialScore: 3,
+        participantId: 'user-2',
+        createdAt: new Date('2025-01-01T10:10:00Z'),
+      },
+      {
+        id: 'card5',
+        type: 'card',
+        authorName: 'Jamie S.',
+        content: 'Nont many interruptions this sprint.',
+        initialScore: 3,
+        participantId: 'user-2',
+        createdAt: new Date('2025-01-01T10:10:00Z'),
+      },
+      {
+        id: 'card6',
+        type: 'card',
+        authorName: 'Jamie S.',
+        content: 'KOMO sdk completed!',
         initialScore: 3,
         participantId: 'user-2',
         createdAt: new Date('2025-01-01T10:10:00Z'),
@@ -131,7 +160,7 @@ const initialBoardData: ColumnData[] = [
     description: 'Obstacles or areas for improvement.',
     items: [
       {
-        id: 'card3',
+        id: 'card7',
         type: 'card',
         authorName: 'Casey L.',
         content: 'Unexpected bugs in staging.',
@@ -140,7 +169,7 @@ const initialBoardData: ColumnData[] = [
         createdAt: new Date('2025-01-01T10:15:00Z'),
       },
       {
-        id: 'card4',
+        id: 'card8',
         type: 'card',
         authorName: 'Morgan R.',
         content: 'Meeting overload this sprint.',
@@ -156,7 +185,7 @@ const initialBoardData: ColumnData[] = [
         createdAt: new Date('2025-01-01T10:25:00Z'),
       },
       {
-        id: 'card5',
+        id: 'card9',
         type: 'card',
         authorName: 'Riley B.',
         content: 'Documentation needs updating.',
@@ -172,7 +201,7 @@ const initialBoardData: ColumnData[] = [
     description: 'Actionable ideas for the next sprint.',
     items: [
       {
-        id: 'card6',
+        id: 'card10',
         type: 'card',
         authorName: 'Taylor K.',
         content: 'Dedicate time for tech debt.',
@@ -189,7 +218,7 @@ const initialBoardData: ColumnData[] = [
         createdAt: new Date('2025-01-01T10:40:00Z'),
       },
       {
-        id: 'card7',
+        id: 'card11',
         type: 'card',
         authorName: 'Jordan M.',
         content: 'More pair programming sessions.',
@@ -198,7 +227,7 @@ const initialBoardData: ColumnData[] = [
         createdAt: new Date('2025-01-01T10:45:00Z'),
       },
       {
-        id: 'card8',
+        id: 'card12',
         type: 'card',
         authorName: 'Dev Team',
         content: 'Improve CI/CD pipeline speed.',
@@ -241,6 +270,9 @@ const BoardPage: React.FC = () => {
   // Column editing state
   const [editingColumnId, setEditingColumnId] = React.useState<string | null>(null);
 
+  // AI grouping state
+  const [aiGroupingColumns, setAiGroupingColumns] = React.useState<Set<string>>(new Set());
+
   const stackTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const STACK_DELAY = 600; // ms
@@ -274,6 +306,108 @@ const BoardPage: React.FC = () => {
       if (itm) return itm;
     }
     return null;
+  };
+
+  /* ------------------------------------------------------------------ */
+  /* AI GROUPING HANDLERS */
+  /* ------------------------------------------------------------------ */
+
+  const handleAIGroup = async (columnId: string) => {
+    const column = columns.find((col) => col.id === columnId);
+    if (!column) return;
+
+    // Get only cards (not spacers or stacks) for AI analysis
+    const cards = column.items.filter((item): item is CardItem => item?.type === 'card');
+
+    if (cards.length === 0) {
+      alert('No cards to group in this column.');
+      return;
+    }
+
+    // Set loading state
+    setAiGroupingColumns((prev) => new Set(prev).add(columnId));
+
+    try {
+      const response = await fetch('/api/ai/group-cards', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          cards: cards.map((card) => ({
+            id: card.id,
+            content: card.content,
+            authorName: card.authorName,
+          })),
+          columnTitle: column.title,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.details || 'Failed to group cards');
+      }
+
+      const result = await response.json();
+
+      if (!result.success || !result.groups) {
+        throw new Error('Invalid response from AI grouping service');
+      }
+
+      // Reorganize the column items based on AI grouping
+      setColumns((prev) =>
+        prev.map((col) => {
+          if (col.id !== columnId) return col;
+
+          const newItems: BoardItem[] = [];
+
+          // Add each group with its spacer
+          result.groups.forEach((group: any, groupIndex: number) => {
+            // Add spacer before the group (except for the first group)
+            if (groupIndex > 0 || result.groups.length > 1) {
+              const spacer: SpacerItem = {
+                id: uuid(),
+                type: 'spacer',
+                name: group.spacerName,
+                color: 'bg-blue-200', // All AI-generated spacers use blue
+                participantId: CURRENT_USER.id,
+                createdAt: new Date(),
+              };
+              newItems.push(spacer);
+            }
+
+            // Add the cards in this group
+            group.cards.forEach((card: any) => {
+              const originalCard = cards.find((c) => c.id === card.id);
+              if (originalCard) {
+                newItems.push(originalCard);
+              }
+            });
+          });
+
+          // Add any remaining non-card items (stacks, existing spacers that weren't cards)
+          const nonCardItems = col.items.filter((item) => item && item.type !== 'card');
+
+          return {
+            ...col,
+            items: [...newItems, ...nonCardItems],
+          };
+        }),
+      );
+
+      // Show success message
+      console.log(`Successfully grouped ${cards.length} cards into ${result.groupCount} groups`);
+    } catch (error) {
+      console.error('AI grouping failed:', error);
+      alert(`Failed to group cards: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      // Remove loading state
+      setAiGroupingColumns((prev) => {
+        const next = new Set(prev);
+        next.delete(columnId);
+        return next;
+      });
+    }
   };
 
   /* ------------------------------------------------------------------ */
@@ -917,107 +1051,117 @@ const BoardPage: React.FC = () => {
               strategy={horizontalListSortingStrategy}
             >
               <Board>
-                {columns.map((column) => (
-                  <Column
-                    key={column.id}
-                    id={column.id}
-                    title={column.title}
-                    description={column.description}
-                    items={column.items.filter((i) => i != null).map((i) => i.id)}
-                    onAddCard={() => addCard(column.id)}
-                    onAddSpacer={() => addSpacer(column.id)}
-                    // Card input props
-                    showCardInput={activeCardInputs.has(column.id)}
-                    onSaveCard={(content) => saveCardInput(column.id, content)}
-                    onCancelCard={() => cancelCardInput(column.id)}
-                    // Spacer input props
-                    showSpacerInput={activeSpacerInputs.has(column.id)}
-                    onSaveSpacer={(content) => saveSpacerInput(column.id, content)}
-                    onCancelSpacer={() => cancelSpacerInput(column.id)}
-                    // Edit props
-                    editingItem={editingItem?.columnId === column.id ? editingItem : null}
-                    onSaveEdit={saveEdit}
-                    onCancelEdit={cancelEdit}
-                    // Column edit props
-                    isEditingColumn={editingColumnId === column.id}
-                    onEditColumn={() => editColumn(column.id)}
-                    onSaveColumn={(title, description) =>
-                      saveColumnEdit(column.id, title, description)
-                    }
-                    onCancelColumnEdit={cancelColumnEdit}
-                    currentUserName={CURRENT_USER.name}
-                  >
-                    <div className="mt-4 space-y-3">
-                      {column.items
-                        .filter((item) => item != null)
-                        .map((item) => {
-                          // Get the active item being dragged
-                          const activeItem = activeId ? (getItem(activeId) as BoardItem) : null;
+                {columns.map((column) => {
+                  // Check if this column has cards for AI grouping
+                  const hasCards = column.items.some((item) => item?.type === 'card');
+                  const isAIGrouping = aiGroupingColumns.has(column.id);
 
-                          // Check if we're in stacking mode
-                          const isStackingCandidate =
-                            activeItem?.type === 'card' &&
-                            (item.type === 'card' || item.type === 'stack');
+                  return (
+                    <Column
+                      key={column.id}
+                      id={column.id}
+                      title={column.title}
+                      description={column.description}
+                      items={column.items.filter((i) => i != null).map((i) => i.id)}
+                      onAddCard={() => addCard(column.id)}
+                      onAddSpacer={() => addSpacer(column.id)}
+                      // AI grouping props
+                      onAIGroup={() => handleAIGroup(column.id)}
+                      isAIGrouping={isAIGrouping}
+                      hasCards={hasCards}
+                      // Card input props
+                      showCardInput={activeCardInputs.has(column.id)}
+                      onSaveCard={(content) => saveCardInput(column.id, content)}
+                      onCancelCard={() => cancelCardInput(column.id)}
+                      // Spacer input props
+                      showSpacerInput={activeSpacerInputs.has(column.id)}
+                      onSaveSpacer={(content) => saveSpacerInput(column.id, content)}
+                      onCancelSpacer={() => cancelSpacerInput(column.id)}
+                      // Edit props
+                      editingItem={editingItem?.columnId === column.id ? editingItem : null}
+                      onSaveEdit={saveEdit}
+                      onCancelEdit={cancelEdit}
+                      // Column edit props
+                      isEditingColumn={editingColumnId === column.id}
+                      onEditColumn={() => editColumn(column.id)}
+                      onSaveColumn={(title, description) =>
+                        saveColumnEdit(column.id, title, description)
+                      }
+                      onCancelColumnEdit={cancelColumnEdit}
+                      currentUserName={CURRENT_USER.name}
+                    >
+                      <div className="mt-4 space-y-3">
+                        {column.items
+                          .filter((item) => item != null)
+                          .map((item) => {
+                            // Get the active item being dragged
+                            const activeItem = activeId ? (getItem(activeId) as BoardItem) : null;
 
-                          // Only show stacking highlight if stacking is enabled and this is the target
-                          const highlight =
-                            overId === item.id &&
-                            activeId !== null &&
-                            activeId !== item.id &&
-                            isStackingCandidate &&
-                            stackingEnabled; // Only highlight when stacking is actually enabled
+                            // Check if we're in stacking mode
+                            const isStackingCandidate =
+                              activeItem?.type === 'card' &&
+                              (item.type === 'card' || item.type === 'stack');
 
-                          if (item.type === 'card') {
-                            return (
-                              <Card
-                                key={item.id}
-                                id={item.id}
-                                authorName={item.authorName}
-                                content={item.content}
-                                initialScore={item.initialScore}
-                                highlight={highlight}
-                                onEdit={editCard}
-                                onDelete={deleteCard}
-                                currentUserId={CURRENT_USER.id}
-                                currentUserName={CURRENT_USER.name}
-                              />
-                            );
-                          }
-                          if (item.type === 'spacer') {
-                            return (
-                              <Spacer
-                                key={item.id}
-                                id={item.id}
-                                name={item.name}
-                                color={item.color}
-                                onEdit={editSpacer}
-                                onDelete={deleteSpacer}
-                              />
-                            );
-                          }
-                          if (item.type === 'stack') {
-                            return (
-                              <StackCard
-                                key={item.id}
-                                stack={item}
-                                currentIndex={(stackIndices[item.id] || 0) + 1}
-                                totalCards={item.cards.length}
-                                onCycleNext={cycleStackNext}
-                                onCyclePrev={cycleStackPrev}
-                                onUnstack={unstack}
-                                onEditCard={editStackCard}
-                                onDeleteCard={deleteStackCard}
-                                highlight={highlight}
-                                currentUserId={CURRENT_USER.id}
-                                currentUserName={CURRENT_USER.name}
-                              />
-                            );
-                          }
-                          return null;
-                        })}
-                    </div>
-                  </Column>
-                ))}
+                            // Only show stacking highlight if stacking is enabled and this is the target
+                            const highlight =
+                              overId === item.id &&
+                              activeId !== null &&
+                              activeId !== item.id &&
+                              isStackingCandidate &&
+                              stackingEnabled; // Only highlight when stacking is actually enabled
+
+                            if (item.type === 'card') {
+                              return (
+                                <Card
+                                  key={item.id}
+                                  id={item.id}
+                                  authorName={item.authorName}
+                                  content={item.content}
+                                  initialScore={item.initialScore}
+                                  highlight={highlight}
+                                  onEdit={editCard}
+                                  onDelete={deleteCard}
+                                  currentUserId={CURRENT_USER.id}
+                                  currentUserName={CURRENT_USER.name}
+                                />
+                              );
+                            }
+                            if (item.type === 'spacer') {
+                              return (
+                                <Spacer
+                                  key={item.id}
+                                  id={item.id}
+                                  name={item.name}
+                                  color={item.color}
+                                  onEdit={editSpacer}
+                                  onDelete={deleteSpacer}
+                                />
+                              );
+                            }
+                            if (item.type === 'stack') {
+                              return (
+                                <StackCard
+                                  key={item.id}
+                                  stack={item}
+                                  currentIndex={(stackIndices[item.id] || 0) + 1}
+                                  totalCards={item.cards.length}
+                                  onCycleNext={cycleStackNext}
+                                  onCyclePrev={cycleStackPrev}
+                                  onUnstack={unstack}
+                                  onEditCard={editStackCard}
+                                  onDeleteCard={deleteStackCard}
+                                  highlight={highlight}
+                                  currentUserId={CURRENT_USER.id}
+                                  currentUserName={CURRENT_USER.name}
+                                />
+                              );
+                            }
+                            return null;
+                          })}
+                      </div>
+                    </Column>
+                  );
+                })}
               </Board>
             </SortableContext>
 

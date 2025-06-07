@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { adminDb } from '@/lib/firebase-admin';
-import { ApiResponse, SendCodeRequest, VerificationCode } from '@/types';
+import { ApiResponse, SendCodeRequest, VerificationCode } from '@/types/auth';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 

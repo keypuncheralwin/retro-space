@@ -9,7 +9,7 @@ import {
   VerifyCodeRequest,
   SignInState,
   VerifyCodeResponseData,
-} from '@/types';
+} from '@/types/auth';
 
 export default function SignIn() {
   const router = useRouter();

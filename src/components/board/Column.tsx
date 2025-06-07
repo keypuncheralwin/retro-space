@@ -16,6 +16,11 @@ interface ColumnProps {
   onAddCard: () => void;
   onAddSpacer: () => void;
 
+  // AI grouping props
+  onAIGroup?: () => void;
+  isAIGrouping?: boolean;
+  hasCards?: boolean;
+
   // Card input props
   showCardInput?: boolean;
   onSaveCard?: (content: string) => void;
@@ -49,6 +54,9 @@ const Column: React.FC<ColumnProps> = ({
   children,
   onAddCard,
   onAddSpacer,
+  onAIGroup,
+  isAIGrouping = false,
+  hasCards = false,
   showCardInput = false,
   onSaveCard,
   onCancelCard,
@@ -214,7 +222,15 @@ const Column: React.FC<ColumnProps> = ({
       </div>
 
       {/* Toolbar - only show when not in drag overlay */}
-      {!isDragOverlay && <ColumnToolbar onAddCard={onAddCard} onAddSpacer={onAddSpacer} />}
+      {!isDragOverlay && (
+        <ColumnToolbar
+          onAddCard={onAddCard}
+          onAddSpacer={onAddSpacer}
+          onAIGroup={onAIGroup}
+          isAIGrouping={isAIGrouping}
+          hasCards={hasCards}
+        />
+      )}
 
       {/* Edit Input - show when editing an item */}
       {!isDragOverlay && editingItem && onSaveEdit && onCancelEdit && (

@@ -1,11 +1,14 @@
 'use client';
 
 import React from 'react';
-import { Plus, BetweenHorizontalStart } from 'lucide-react';
+import { Plus, BetweenHorizontalStart, Sparkles } from 'lucide-react';
 
 interface ColumnToolbarProps {
   onAddCard: () => void;
   onAddSpacer: () => void;
+  onAIGroup?: () => void;
+  isAIGrouping?: boolean;
+  hasCards?: boolean;
   // Future props can be added here:
   // onFilter?: () => void;
   // onSort?: () => void;
@@ -14,7 +17,13 @@ interface ColumnToolbarProps {
   // participantCount?: number;
 }
 
-const ColumnToolbar: React.FC<ColumnToolbarProps> = ({ onAddCard, onAddSpacer }) => {
+const ColumnToolbar: React.FC<ColumnToolbarProps> = ({
+  onAddCard,
+  onAddSpacer,
+  onAIGroup,
+  isAIGrouping = false,
+  hasCards = false,
+}) => {
   return (
     <div className="flex gap-2 mb-4 pb-4 border-b border-gray-200">
       <button
@@ -23,7 +32,6 @@ const ColumnToolbar: React.FC<ColumnToolbarProps> = ({ onAddCard, onAddSpacer })
         title="Add a new card to this column"
       >
         <Plus size={14} />
-        Add Card
       </button>
 
       <button
@@ -32,8 +40,30 @@ const ColumnToolbar: React.FC<ColumnToolbarProps> = ({ onAddCard, onAddSpacer })
         title="Add a spacer to organize cards into sections"
       >
         <BetweenHorizontalStart size={14} />
-        Add Spacer
       </button>
+
+      {/* AI Grouping Button */}
+      {onAIGroup && (
+        <button
+          onClick={onAIGroup}
+          disabled={!hasCards || isAIGrouping}
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1 ${
+            !hasCards || isAIGrouping
+              ? 'text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed'
+              : 'text-purple-600 bg-purple-50 border border-purple-200 hover:bg-purple-100 hover:text-purple-700'
+          }`}
+          title={
+            !hasCards
+              ? 'Add some cards first to use AI grouping'
+              : isAIGrouping
+                ? 'AI is analyzing cards...'
+                : 'Use AI to group similar cards with spacers'
+          }
+        >
+          <Sparkles size={14} className={isAIGrouping ? 'animate-pulse' : ''} />
+          {isAIGrouping ? 'Grouping...' : ''}
+        </button>
+      )}
 
       {/* Future toolbar items can be added here:
       
