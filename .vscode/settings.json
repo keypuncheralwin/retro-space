@@ -14,7 +14,7 @@
   "editor.formatOnPaste": false,           // keep it to save only
   "prettier.requireConfig": true,          // only format when .prettierrc is present
   "files.eol": "\n",                       // normalise line endings
-  "editor.codeActionsOnSave": {            // keeps eslint --fix 
-    "source.fixAll.eslint": true
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
   }
 }

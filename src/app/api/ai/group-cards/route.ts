@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { AICardData, AICardGroup } from '@/types/ai';
+import { AICardData, AICardGroup, OpenAIGroupingResult } from '@/types/ai';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -33,9 +33,9 @@ Group these cards by similarity. For each group:
 2. List the card numbers that belong to this group
 
 Rules:
-- Create 2-5 groups maximum
+- Each group must have more than one card
 - Each card should be in exactly one group
-- Group names should be actionable and clear
+- If a card doesn't fit any group, don't place it in a group
 
 Respond in this exact JSON format:
 {
@@ -79,8 +79,9 @@ Respond in this exact JSON format:
     }
 
     // Transform AI response into our format
-    const cardGroups: AICardGroup[] = aiGroups.groups.map((group: any) => ({
-      cards: group.cardNumbers.map((num: number) => cards[num - 1]).filter(Boolean),
+    const aiResult = aiGroups as OpenAIGroupingResult;
+    const cardGroups: AICardGroup[] = aiResult.groups.map((group) => ({
+      cards: group.cardNumbers.map((num) => cards[num - 1]).filter(Boolean),
       spacerName: group.name,
       spacerColor: 'bg-blue-200', // All AI-generated spacers use blue
     }));

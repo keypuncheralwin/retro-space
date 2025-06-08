@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { AICardGroup, AICardData } from '@/types/ai';
 import {
   DndContext,
   closestCenter,
@@ -68,7 +69,7 @@ interface EditingItem {
   type: 'card' | 'spacer';
   content: string;
   columnId: string;
-  stackId?: string;
+  stackId?: string; // For editing cards within stacks
 }
 
 /* ------------------------------------------------------------------ */
@@ -102,52 +103,23 @@ const initialBoardData: ColumnData[] = [
         id: 'card1',
         type: 'card',
         authorName: 'Alex P.',
-        content: 'Lot of work got done!',
+        content: 'Successful feature launch!',
         initialScore: 5,
         participantId: 'user-1',
         createdAt: new Date('2025-01-01T10:00:00Z'),
+      },
+      {
+        id: 'spacer1',
+        type: 'spacer',
+        name: 'Team Wins',
+        participantId: 'user-1',
+        createdAt: new Date('2025-01-01T10:05:00Z'),
       },
       {
         id: 'card2',
         type: 'card',
-        authorName: 'Alex P.',
-        content: 'world 360 performance improvements!',
-        initialScore: 5,
-        participantId: 'user-1',
-        createdAt: new Date('2025-01-01T10:00:00Z'),
-      },
-      {
-        id: 'card3',
-        type: 'card',
         authorName: 'Jamie S.',
-        content: 'Tims Auth 0 implementation!',
-        initialScore: 3,
-        participantId: 'user-2',
-        createdAt: new Date('2025-01-01T10:10:00Z'),
-      },
-      {
-        id: 'card4',
-        type: 'card',
-        authorName: 'Jamie S.',
-        content: 'deadline was extended!',
-        initialScore: 3,
-        participantId: 'user-2',
-        createdAt: new Date('2025-01-01T10:10:00Z'),
-      },
-      {
-        id: 'card5',
-        type: 'card',
-        authorName: 'Jamie S.',
-        content: 'Nont many interruptions this sprint.',
-        initialScore: 3,
-        participantId: 'user-2',
-        createdAt: new Date('2025-01-01T10:10:00Z'),
-      },
-      {
-        id: 'card6',
-        type: 'card',
-        authorName: 'Jamie S.',
-        content: 'KOMO sdk completed!',
+        content: 'Great collaboration on the new API.',
         initialScore: 3,
         participantId: 'user-2',
         createdAt: new Date('2025-01-01T10:10:00Z'),
@@ -160,7 +132,7 @@ const initialBoardData: ColumnData[] = [
     description: 'Obstacles or areas for improvement.',
     items: [
       {
-        id: 'card7',
+        id: 'card3',
         type: 'card',
         authorName: 'Casey L.',
         content: 'Unexpected bugs in staging.',
@@ -169,7 +141,7 @@ const initialBoardData: ColumnData[] = [
         createdAt: new Date('2025-01-01T10:15:00Z'),
       },
       {
-        id: 'card8',
+        id: 'card4',
         type: 'card',
         authorName: 'Morgan R.',
         content: 'Meeting overload this sprint.',
@@ -185,7 +157,7 @@ const initialBoardData: ColumnData[] = [
         createdAt: new Date('2025-01-01T10:25:00Z'),
       },
       {
-        id: 'card9',
+        id: 'card5',
         type: 'card',
         authorName: 'Riley B.',
         content: 'Documentation needs updating.',
@@ -201,7 +173,7 @@ const initialBoardData: ColumnData[] = [
     description: 'Actionable ideas for the next sprint.',
     items: [
       {
-        id: 'card10',
+        id: 'card6',
         type: 'card',
         authorName: 'Taylor K.',
         content: 'Dedicate time for tech debt.',
@@ -218,7 +190,7 @@ const initialBoardData: ColumnData[] = [
         createdAt: new Date('2025-01-01T10:40:00Z'),
       },
       {
-        id: 'card11',
+        id: 'card7',
         type: 'card',
         authorName: 'Jordan M.',
         content: 'More pair programming sessions.',
@@ -227,7 +199,7 @@ const initialBoardData: ColumnData[] = [
         createdAt: new Date('2025-01-01T10:45:00Z'),
       },
       {
-        id: 'card12',
+        id: 'card8',
         type: 'card',
         authorName: 'Dev Team',
         content: 'Improve CI/CD pipeline speed.',
@@ -308,6 +280,23 @@ const BoardPage: React.FC = () => {
     return null;
   };
 
+  /* type guards */
+  const isColumn = (item: BoardItem | ColumnData | null): item is ColumnData => {
+    return item !== null && 'title' in item;
+  };
+
+  const isCard = (item: BoardItem | ColumnData | null): item is CardItem => {
+    return item !== null && !isColumn(item) && item.type === 'card';
+  };
+
+  const isStack = (item: BoardItem | ColumnData | null): item is StackItem => {
+    return item !== null && !isColumn(item) && item.type === 'stack';
+  };
+
+  const isSpacer = (item: BoardItem | ColumnData | null): item is SpacerItem => {
+    return item !== null && !isColumn(item) && item.type === 'spacer';
+  };
+
   /* ------------------------------------------------------------------ */
   /* AI GROUPING HANDLERS */
   /* ------------------------------------------------------------------ */
@@ -362,7 +351,7 @@ const BoardPage: React.FC = () => {
           const newItems: BoardItem[] = [];
 
           // Add each group with its spacer
-          result.groups.forEach((group: any, groupIndex: number) => {
+          result.groups.forEach((group: AICardGroup, groupIndex: number) => {
             // Add spacer before the group (except for the first group)
             if (groupIndex > 0 || result.groups.length > 1) {
               const spacer: SpacerItem = {
@@ -377,7 +366,7 @@ const BoardPage: React.FC = () => {
             }
 
             // Add the cards in this group
-            group.cards.forEach((card: any) => {
+            group.cards.forEach((card: AICardData) => {
               const originalCard = cards.find((c) => c.id === card.id);
               if (originalCard) {
                 newItems.push(originalCard);
@@ -536,8 +525,8 @@ const BoardPage: React.FC = () => {
     const column = findColumn(cardId);
     if (!column) return;
 
-    const item = getItem(cardId) as CardItem;
-    if (!item || item.type !== 'card') return;
+    const item = getItem(cardId);
+    if (!isCard(item)) return;
 
     setEditingItem({
       id: cardId,
@@ -557,8 +546,8 @@ const BoardPage: React.FC = () => {
     const column = findColumn(stackId);
     if (!column) return;
 
-    const stack = getItem(stackId) as StackItem;
-    if (!stack || stack.type !== 'stack') return;
+    const stack = getItem(stackId);
+    if (!isStack(stack)) return;
 
     const card = stack.cards.find((c) => c.id === cardId);
     if (!card) return;
@@ -582,8 +571,8 @@ const BoardPage: React.FC = () => {
     const column = findColumn(spacerId);
     if (!column) return;
 
-    const item = getItem(spacerId) as SpacerItem;
-    if (!item || item.type !== 'spacer') return;
+    const item = getItem(spacerId);
+    if (!isSpacer(item)) return;
 
     setEditingItem({
       id: spacerId,
@@ -685,8 +674,8 @@ const BoardPage: React.FC = () => {
     // Clean up stack index if stack was removed
     setStackIndices((prev) => {
       const next = { ...prev };
-      const stack = getItem(stackId) as StackItem;
-      if (!stack || stack.type !== 'stack') {
+      const stack = getItem(stackId);
+      if (!isStack(stack)) {
         delete next[stackId];
       }
       return next;
@@ -729,14 +718,13 @@ const BoardPage: React.FC = () => {
       return;
     }
 
-    const activeItem = getItem(activeId) as BoardItem;
-    const overItem = getItem(newOverId) as BoardItem;
+    const activeItem = getItem(activeId);
+    const overItem = getItem(newOverId);
     const activeCol = findColumn(activeId);
     const overCol = findColumn(newOverId);
 
     /* potential stacking */
-    const canPotentiallyStack =
-      activeItem?.type === 'card' && (overItem?.type === 'card' || overItem?.type === 'stack');
+    const canPotentiallyStack = isCard(activeItem) && (isCard(overItem) || isStack(overItem));
 
     if (canPotentiallyStack) {
       stackTimeoutRef.current = setTimeout(() => setStackingEnabled(true), STACK_DELAY);
@@ -836,8 +824,8 @@ const BoardPage: React.FC = () => {
     }
 
     /* ---------- stacking logic (only if stacking is enabled after hover delay) ---------- */
-    const activeItem = getItem(activeId) as BoardItem;
-    const overItem = getItem(overId) as BoardItem;
+    const activeItem = getItem(activeId);
+    const overItem = getItem(overId);
 
     // Add safety check to ensure items exist (only for non-column operations)
     if (!activeItem || !overItem) {
@@ -847,8 +835,8 @@ const BoardPage: React.FC = () => {
 
     const canStack =
       stackingEnabled && // Only stack if we've hovered long enough
-      activeItem.type === 'card' &&
-      (overItem.type === 'card' || overItem.type === 'stack');
+      isCard(activeItem) &&
+      (isCard(overItem) || isStack(overItem));
 
     if (canStack) {
       setColumns((prev) => {
@@ -861,7 +849,7 @@ const BoardPage: React.FC = () => {
         /* destination column */
         const dst = next.find((c) => c.id === overCol.id)!;
 
-        if (overItem.type === 'card') {
+        if (isCard(overItem)) {
           /* make new stack */
           const newStackId = uuid();
           const newStack: StackItem = {
@@ -873,7 +861,7 @@ const BoardPage: React.FC = () => {
 
           // Initialize stack index to 0 (first card)
           setStackIndices((prev) => ({ ...prev, [newStackId]: 0 }));
-        } else {
+        } else if (isStack(overItem)) {
           /* push into existing stack */
           const stack = dst.items.find((i) => i && i.id === overId) as StackItem;
           if (stack) {
@@ -987,8 +975,8 @@ const BoardPage: React.FC = () => {
 
     // Update the stack index
     setStackIndices((prev) => {
-      const stack = getItem(id) as StackItem;
-      if (!stack || stack.type !== 'stack') return prev;
+      const stack = getItem(id);
+      if (!isStack(stack)) return prev;
 
       const currentIndex = prev[id] || 0;
       const nextIndex = (currentIndex + 1) % stack.cards.length;
@@ -1015,8 +1003,8 @@ const BoardPage: React.FC = () => {
 
     // Update the stack index
     setStackIndices((prev) => {
-      const stack = getItem(id) as StackItem;
-      if (!stack || stack.type !== 'stack') return prev;
+      const stack = getItem(id);
+      if (!isStack(stack)) return prev;
 
       const currentIndex = prev[id] || 0;
       const nextIndex = currentIndex === 0 ? stack.cards.length - 1 : currentIndex - 1;
@@ -1167,7 +1155,7 @@ const BoardPage: React.FC = () => {
 
             {/* overlay */}
             <DragOverlay dropAnimation={dropAnimation}>
-              {activeEntity && 'title' in activeEntity ? (
+              {isColumn(activeEntity) ? (
                 <Column
                   id={activeEntity.id}
                   title={activeEntity.title}
@@ -1190,21 +1178,21 @@ const BoardPage: React.FC = () => {
                 >
                   <div className="mt-4 space-y-3" />
                 </Column>
-              ) : activeEntity && (activeEntity as BoardItem).type === 'card' ? (
+              ) : isCard(activeEntity) ? (
                 <Card
                   id={activeEntity.id}
-                  authorName={(activeEntity as CardItem).authorName}
-                  content={(activeEntity as CardItem).content}
-                  initialScore={(activeEntity as CardItem).initialScore}
+                  authorName={activeEntity.authorName}
+                  content={activeEntity.content}
+                  initialScore={activeEntity.initialScore}
                   isDragOverlay
                   currentUserId={CURRENT_USER.id}
                   currentUserName={CURRENT_USER.name}
                 />
-              ) : activeEntity && (activeEntity as BoardItem).type === 'stack' ? (
+              ) : isStack(activeEntity) ? (
                 <StackCard
-                  stack={activeEntity as StackItem}
+                  stack={activeEntity}
                   currentIndex={1}
-                  totalCards={(activeEntity as StackItem).cards.length}
+                  totalCards={activeEntity.cards.length}
                   onCycleNext={cycleStackNext}
                   onCyclePrev={cycleStackPrev}
                   onUnstack={() => {}}
@@ -1212,8 +1200,13 @@ const BoardPage: React.FC = () => {
                   currentUserId={CURRENT_USER.id}
                   currentUserName={CURRENT_USER.name}
                 />
-              ) : activeEntity && (activeEntity as BoardItem).type === 'spacer' ? (
-                <Spacer id={activeEntity.id} isDragOverlay />
+              ) : isSpacer(activeEntity) ? (
+                <Spacer
+                  id={activeEntity.id}
+                  name={activeEntity.name}
+                  color={activeEntity.color}
+                  isDragOverlay
+                />
               ) : null}
             </DragOverlay>
           </DndContext>

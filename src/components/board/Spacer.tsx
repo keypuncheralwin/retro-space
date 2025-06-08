@@ -3,7 +3,7 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Edit2, Trash2 } from 'lucide-react';
+import { Edit2, Trash2 } from 'lucide-react';
 
 interface SpacerProps {
   id: string;
@@ -46,23 +46,22 @@ const Spacer: React.FC<SpacerProps> = ({
   /* -------------------------------------------------------------- */
   const spacerContent = (
     <div
-      className={`my-2 py-2 rounded ${color || 'bg-gray-200'} cursor-grab active:cursor-grabbing hover:shadow-sm transition-shadow group relative`}
+      className={`my-2 py-1.5 rounded ${color || 'bg-gray-200'} cursor-grab active:cursor-grabbing hover:shadow-sm transition-shadow group relative ${
+        name ? 'py-2' : 'py-1'
+      }`}
     >
-      <div className="flex items-center gap-2 px-3">
-        {/* Drag handle (purely visual) */}
-        <div className="text-gray-600 opacity-0 hover:opacity-100 transition-opacity">
-          <GripVertical size={16} />
-        </div>
-
+      <div className="flex items-start gap-2 px-3">
         {name ? (
-          <div className="text-xs font-medium text-gray-700 truncate flex-1">{name}</div>
+          <div className="text-xs font-medium text-gray-700 flex-1 leading-relaxed break-words py-0.5">
+            {name}
+          </div>
         ) : (
-          <div className="h-2 flex-1" />
+          <div className="h-1 flex-1" />
         )}
 
         {/* Edit/Delete buttons - only show when not drag overlay */}
         {!isDragOverlay && (onEdit || onDelete) && (
-          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
             {onEdit && (
               <button
                 onClick={(e) => {
